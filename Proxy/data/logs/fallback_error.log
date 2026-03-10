@@ -1,0 +1,8 @@
+2026/03/03 10:13:41 [error] 202#202: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 170.247.170.2, server: nginxproxymanager, request: "GET /api/ HTTP/1.1", upstream: "http://127.0.0.1:3000/", host: "localhost:81", referrer: "http://localhost:81/nginx/proxy"
+2026/03/03 10:13:42 [error] 202#202: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 170.247.170.2, server: nginxproxymanager, request: "GET /api/ HTTP/1.1", upstream: "http://127.0.0.1:3000/", host: "localhost:81", referrer: "http://localhost:81/nginx/proxy"
+2026/03/03 10:13:44 [error] 202#202: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 170.247.170.2, server: nginxproxymanager, request: "GET /api/ HTTP/1.1", upstream: "http://127.0.0.1:3000/", host: "localhost:81", referrer: "http://localhost:81/nginx/proxy"
+2026/03/03 10:43:41 [error] 202#202: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 172.67.74.168, server: nginxproxymanager, request: "GET /api/tokens HTTP/1.1", upstream: "http://127.0.0.1:3000/tokens", host: "localhost:81", referrer: "http://localhost:81/nginx/proxy"
+2026/03/03 10:43:42 [error] 202#202: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 172.67.74.168, server: nginxproxymanager, request: "GET /api/ HTTP/1.1", upstream: "http://127.0.0.1:3000/", host: "localhost:81", referrer: "http://localhost:81/nginx/proxy"
+2026/03/05 12:30:26 [error] 230#230: unexpected DNS response for boundary-server
+2026/03/05 12:30:26 [error] 230#230: unexpected DNS response for boundary-server
+2026/03/05 12:30:26 [error] 230#230: unexpected DNS response for boundary-server

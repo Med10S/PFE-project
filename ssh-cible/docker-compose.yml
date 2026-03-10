@@ -8,9 +8,20 @@ services:
         USERNAME: ${SSH_USERNAME:-pfe_user}
     environment:
       SSH_PASSWORD: ${SSH_PASSWORD:-PFE2026!}
+      TAILSCALE_AUTHKEY: ${TAILSCALE_AUTHKEY:-}
+      TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME:-ssh-cible}
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - tailscale-state:/var/lib/tailscale
     restart: unless-stopped
     networks:
       - internal-ssh-net # Réseau totalement isolé
 networks:
   internal-ssh-net:
     internal: false       # Ce réseau n'a pas accès à Internet
+
+volumes:
+  tailscale-state:

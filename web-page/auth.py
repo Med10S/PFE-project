@@ -14,14 +14,14 @@ os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     
 # Configuration Authentik
 AUTHENTIK_CONFIG = {
-    'client_id': 'YT4QkkhEI2b26sE8Df12oeeNy95qPnt1anrsCSyX',
-    'client_secret': 'FoxFN55CaZ0mPhDDHAb8FWcUGd0TtnClBjrzA72DiGzQG4watNo1PKNtMa7iEvfx5PXVUPSV7J9Ig0HWiyWlXkOr0vR5bRSw6c6CnaH36kpeibtbln8kxBrps6OJzxUS',
-    'base_url': 'http://localhost:9090',
-    'authorization_url': 'http://localhost:9090/application/o/authorize/',
-    'token_url': 'http://localhost:9090/application/o/token/',
-    'userinfo_url': 'http://localhost:9090/application/o/userinfo/',
+    'client_id': os.getenv('AUTHENTIK_CLIENT_ID', 'YT4QkkhEI2b26sE8Df12oeeNy95qPnt1anrsCSyX'),
+    'client_secret': os.getenv('AUTHENTIK_CLIENT_SECRET', 'FoxFN55CaZ0mPhDDHAb8FWcUGd0TtnClBjrzA72DiGzQG4watNo1PKNtMa7iEvfx5PXVUPSV7J9Ig0HWiyWlXkOr0vR5bRSw6c6CnaH36kpeibtbln8kxBrps6OJzxUS'),
+    'base_url': os.getenv('AUTHENTIK_BASE_URL', 'http://localhost:9090'),
+    'authorization_url': os.getenv('AUTHENTIK_AUTHORIZATION_URL', 'http://localhost:9090/application/o/authorize/'),
+    'token_url': os.getenv('AUTHENTIK_TOKEN_URL', 'http://localhost:9090/application/o/token/'),
+    'userinfo_url': os.getenv('AUTHENTIK_USERINFO_URL', 'http://localhost:9090/application/o/userinfo/'),
     'scope': ['openid', 'profile', 'email', 'groups', 'offline_access', 'permissions_groupes'],
-    'redirect_uri': 'http://localhost:5000/auth/callback'
+    'redirect_uri': os.getenv('AUTHENTIK_REDIRECT_URI', 'http://localhost:5000/auth/callback')
 }
 
 class User:

@@ -8,9 +8,13 @@ from auth import (
     get_authorization_url, exchange_code_for_token, get_user_info, refresh_access_token
 )
 import os
+import re
+from urllib.parse import urlparse
 from authlib.integrations.flask_client import OAuth
+from werkzeug.middleware.proxy_fix import ProxyFix
 app = Flask(__name__)
 app.secret_key = 'EVXFENKv6NESy84NkroEE48xONAyDcEa0UZ4jFkqIp42owAijeA93rsWDEjA8aVvzSqm9zNPvuEkhjSrGlac2OliaZw9R5AiELtc0PQC0jHnBFMFDHHQ0Hikx0vrQiOv'  # À changer en production
+app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 # Configuration des sessions
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -53,6 +57,52 @@ def index():
     session.clear()
     flash('Connexion réussie, mais aucun rôle valide assigné.', 'warning')
     return redirect(url_for('login'))
+
+def _is_valid_webfinger_resource(resource: str) -> bool:
+    if resource.startswith('acct:'):
+        return re.match(r'^acct:[^@\s]+@[^@\s]+$', resource) is not None
+    parsed = urlparse(resource)
+    return bool(parsed.scheme and parsed.netloc)
+
+
+@app.route('/.well-known/webfinger', methods=['GET'])
+def webfinger():
+    resource = request.args.get('resource', '').strip()
+    requested_rels = request.args.getlist('rel')
+
+    subject = os.getenv('WEBFINGER_SUBJECT', 'acct:mohammed.sbihi@sbihi.tech')
+    issuer_href = os.getenv(
+        'WEBFINGER_ISSUER',
+        'https://authentik.sbihi.tech/application/o/tailscale/'
+    )
+    issuer_rel = 'http://openid.net/specs/connect/1.0/issuer'
+
+    if not resource or not _is_valid_webfinger_resource(resource):
+        response = jsonify({'error': 'invalid_request', 'error_description': 'resource parameter is required and must be a valid URI'})
+        response.status_code = 400
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.mimetype = 'application/jrd+json'
+        return response
+
+    accepted_resources = {subject}
+    if subject.startswith('acct:'):
+        accepted_resources.add(subject[len('acct:'):])
+
+    if resource not in accepted_resources:
+        response = jsonify({'error': 'not_found', 'error_description': 'No information available for this resource'})
+        response.status_code = 404
+        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.mimetype = 'application/jrd+json'
+        return response
+
+    links = [{'rel': issuer_rel, 'href': issuer_href}]
+    if requested_rels:
+        links = [link for link in links if link['rel'] in requested_rels]
+
+    response = jsonify({'subject': subject, 'links': links})
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.mimetype = 'application/jrd+json'
+    return response
 
 @app.route('/login')
 def login():
@@ -181,4 +231,13 @@ def api_refresh_token():
         return jsonify({"error": "Impossible de rafraîchir le token"}), 401
 
 if __name__ == '__main__':
-    app.run(debug=True, host='127.0.0.1', port=5000)
+    host = os.getenv('FLASK_HOST', '0.0.0.0')
+    port = int(os.getenv('FLASK_PORT', '5000'))
+    use_ssl = os.getenv('FLASK_USE_SSL', 'false').lower() == 'true'
+
+    if use_ssl:
+        cert_file = os.getenv('SSL_CERT_FILE', '/etc/ssl/myapp/fullchain.pem')
+        key_file = os.getenv('SSL_KEY_FILE', '/etc/ssl/myapp/private.key')
+        app.run(debug=True, host=host, port=port, ssl_context=(cert_file, key_file))
+    else:
+        app.run(debug=True, host=host, port=port)
