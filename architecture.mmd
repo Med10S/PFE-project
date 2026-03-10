@@ -1,0 +1,49 @@
+graph TD
+    %% Définition des styles
+    classDef sso fill:#e1bee7,stroke:#8e24aa,stroke-width:2px,color:#000
+    classDef pam fill:#bbdefb,stroke:#1e88e5,stroke-width:2px,color:#000
+    classDef private fill:#c8e6c9,stroke:#43a047,stroke-width:2px,color:#000
+    classDef monitor fill:#ffe082,stroke:#ffb300,stroke-width:2px,color:#000
+    classDef user fill:#ffffff,stroke:#333,stroke-width:1px,stroke-dasharray: 5 5
+
+    subgraph "Zone Publique Internet"
+        Client[👥 Utilisateur Final]
+        Admin[👨‍💻 Admin DevOps]
+        SecOps[🛡️ Analyste Securite]
+    end
+
+    subgraph "Plan de Controle Zero Trust"
+        Authentik[🚪 Authentik IAM SSO]:::sso
+        BoundaryCtrl[🔑 Boundary Controller PIM]:::pam
+    end
+
+    subgraph "Reseau Prive Isole"
+        AppServer[💻 Serveur Application]:::private
+        DBServer[🗄️ Serveur DB PostgreSQL]:::private
+        BoundaryWorker[⚙️ Boundary Worker Proxy]:::pam
+        Wazuh[👁️ Serveur Wazuh SIEM]:::monitor
+    end
+
+    %% --- Flux SSO / OIDC Authentification ---
+    Client -.->|1. Login OIDC| Authentik
+    Admin -.->|1. Login OIDC| Authentik
+    SecOps -.->|1. Login OIDC| Authentik
+    
+    Authentik -.->|Token avec Role Utilisateur| AppServer
+    Authentik -.->|Token avec Role Admin| BoundaryCtrl
+    Authentik -.->|Token avec Role SecOps| Wazuh
+
+    %% --- Flux de Production Standard ---
+    Client ===>|2. Acces HTTPS | AppServer
+
+    %% --- Flux Accès Privilegie PIM ---
+    Admin ===>|3. Demande acces JIT| BoundaryCtrl
+    BoundaryCtrl ===>|4. Tunnel chiffre| BoundaryWorker
+    BoundaryWorker ===>|5. Connexion SSH locale| AppServer
+    BoundaryWorker ===>|5. Connexion SQL locale| DBServer
+
+    %% --- Flux de Surveillance SIEM ---
+    AppServer -.->|Logs Agent Wazuh| Wazuh
+    DBServer -.->|Logs Agent Wazuh| Wazuh
+    Authentik -.->|Audit authentification| Wazuh
+    BoundaryCtrl -.->|Audit sessions SSH| Wazuh

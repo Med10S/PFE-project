@@ -1,0 +1,318 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Administrateur - IAM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div class="page-title-icon">
+            <i class="bi bi-speedometer2"></i>
+        </div>
+        <div>
+            <h1>Dashboard Administrateur</h1>
+            <p>Bienvenue, {{ user.username }} ! Gérez vos utilisateurs et serveurs.</p>
+        </div>
+    </div>
+    <div class="page-actions">
+        <span class="role-badge-admin">
+            <i class="bi bi-shield-check"></i>
+            {{ user.role }}
+        </span>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card animate-fade-in">
+        <div class="stat-icon primary">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ users|length }}</h3>
+            <p>Utilisateurs</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.1s">
+        <div class="stat-icon success">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ users|selectattr('role', 'equalto', 'Admins')|list|length }}</h3>
+            <p>Administrateurs</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.2s">
+        <div class="stat-icon info">
+            <i class="bi bi-server"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ servers|length }}</h3>
+            <p>Serveurs</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.3s">
+        <div class="stat-icon warning">
+            <i class="bi bi-key-fill"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ user.permissions|length }}</h3>
+            <p>Permissions</p>
+        </div>
+    </div>
+</div>
+
+<!-- Permissions Card -->
+<div class="card animate-fade-in">
+    <div class="card-header gradient-info">
+        <h5 class="card-title">
+            <i class="bi bi-key-fill"></i>
+            Vos Permissions
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="permissions-grid">
+            {% for permission in user.permissions %}
+            <div class="permission-tag">
+                <i class="bi bi-check-circle-fill"></i>
+                {{ permission }}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Users Management -->
+<div class="card animate-fade-in">
+    <div class="card-header gradient-primary">
+        <h5 class="card-title">
+            <i class="bi bi-people-fill"></i>
+            Gestion des Utilisateurs
+        </h5>
+        <span class="badge badge-light">{{ users|length }} utilisateurs</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-hash"></i> ID</th>
+                        <th><i class="bi bi-person"></i> Utilisateur</th>
+                        <th><i class="bi bi-envelope"></i> Email</th>
+                        <th><i class="bi bi-shield"></i> Rôle</th>
+                        <th><i class="bi bi-activity"></i> Status</th>
+                        <th><i class="bi bi-gear"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_item in users %}
+                    <tr>
+                        <td><strong>#{{ user_item.id }}</strong></td>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar-sm">{{ user_item.username[0]|upper }}</div>
+                                <span>{{ user_item.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ user_item.email }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if user_item.role == 'Admins' else 'secondary' }}">
+                                <i class="bi bi-{{ 'shield-check' if user_item.role == 'Admins' else 'person' }}"></i>
+                                {{ user_item.role }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if user_item.status == 'actif' else 'warning' }}">
+                                <i class="bi bi-{{ 'check-circle' if user_item.status == 'actif' else 'pause-circle' }}"></i>
+                                {{ user_item.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-outline-primary btn-sm" onclick="editUser({{ user_item.id }})">
+                                <i class="bi bi-pencil"></i>
+                                Modifier
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Servers Management -->
+<div class="card animate-fade-in">
+    <div class="card-header gradient-warning">
+        <h5 class="card-title">
+            <i class="bi bi-server"></i>
+            Gestion des Serveurs
+        </h5>
+        <span class="badge badge-dark">{{ servers|length }} serveurs</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-hash"></i> ID</th>
+                        <th><i class="bi bi-server"></i> Nom</th>
+                        <th><i class="bi bi-activity"></i> Status</th>
+                        <th><i class="bi bi-cpu"></i> CPU</th>
+                        <th><i class="bi bi-memory"></i> Mémoire</th>
+                        <th><i class="bi bi-gear"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for server in servers %}
+                    <tr>
+                        <td><strong>#{{ server.id }}</strong></td>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <i class="bi bi-hdd-rack text-info"></i>
+                                <span>{{ server.name }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if server.status == 'en ligne' else 'warning' }}">
+                                <i class="bi bi-{{ 'circle-fill' if server.status == 'en ligne' else 'wrench' }}"></i>
+                                {{ server.status }}
+                            </span>
+                        </td>
+                        <td style="min-width: 150px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress" style="flex: 1; height: 8px;">
+                                    <div class="progress-bar primary" style="width: {{ server.cpu }}"></div>
+                                </div>
+                                <small class="text-muted">{{ server.cpu }}</small>
+                            </div>
+                        </td>
+                        <td style="min-width: 150px;">
+                            <div class="d-flex align-items-center gap-2">
+                                <div class="progress" style="flex: 1; height: 8px;">
+                                    <div class="progress-bar info" style="width: {{ server.memory }}"></div>
+                                </div>
+                                <small class="text-muted">{{ server.memory }}</small>
+                            </div>
+                        </td>
+                        <td>
+                            <button class="btn btn-outline-warning btn-sm" onclick="restartServer({{ server.id }})">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                Redémarrer
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Edit User Modal -->
+<div class="modal fade" id="editUserModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-pencil-square text-primary"></i>
+                    Modifier Utilisateur
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <div class="form-group">
+                        <label class="form-label">Nom d'utilisateur</label>
+                        <input type="text" class="form-control" id="editUsername" readonly>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-control" id="editEmail" placeholder="email@exemple.com">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select class="form-control" id="editStatus">
+                            <option value="actif">✓ Actif</option>
+                            <option value="inactif">⏸ Inactif</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">
+                    <i class="bi bi-check"></i> Sauvegarder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentEditUserId = null;
+
+function editUser(userId) {
+    const users = {{ users|tojson }};
+    const user = users.find(u => u.id === userId);
+    
+    if (user) {
+        currentEditUserId = userId;
+        document.getElementById('editUsername').value = user.username;
+        document.getElementById('editEmail').value = user.email;
+        document.getElementById('editStatus').value = user.status;
+        
+        new bootstrap.Modal(document.getElementById('editUserModal')).show();
+    }
+}
+
+function saveUser() {
+    if (!currentEditUserId) return;
+    
+    const data = {
+        email: document.getElementById('editEmail').value,
+        status: document.getElementById('editStatus').value
+    };
+    
+    fetch(`/api/users/${currentEditUserId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            showNotification('Utilisateur mis à jour avec succès!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification('Erreur lors de la mise à jour', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Erreur de communication', 'danger');
+    });
+    
+    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
+}
+
+function restartServer(serverId) {
+    if (confirm('Êtes-vous sûr de vouloir redémarrer ce serveur?')) {
+        fetch(`/api/servers/${serverId}/restart`, { method: 'POST' })
+        .then(response => response.json())
+        .then(data => {
+            showNotification(data.message || data.error, data.message ? 'success' : 'danger');
+            if (data.message) setTimeout(() => location.reload(), 1000);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Erreur de communication', 'danger');
+        });
+    }
+}
+</script>
+{% endblock %}

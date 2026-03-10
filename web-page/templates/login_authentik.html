@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Connexion - IAM Dashboard{% endblock %}
+
+{% block content %}
+<div class="login-container">
+    <div class="login-card">
+        <!-- Main Login Card -->
+        <div class="card animate-fade-in">
+            <div class="card-header gradient-primary text-center" style="padding: 2rem;">
+                <div class="login-icon">
+                    <i class="bi bi-shield-lock-fill"></i>
+                </div>
+                <h4 class="login-title text-white mb-2">Bienvenue !</h4>
+                <p class="text-white mb-0" style="opacity: 0.9;">
+                    Système IAM sécurisé avec OAuth 2.0 / OIDC
+                </p>
+            </div>
+            <div class="card-body text-center p-4">
+                <h5 class="fw-semibold mb-2">Connexion sécurisée</h5>
+                <p class="text-muted mb-4">
+                    Connectez-vous avec votre compte Authentik pour accéder au dashboard IAM.
+                    Vos permissions et rôles seront automatiquement synchronisés.
+                </p>
+                
+                <a href="{{ auth_url }}" class="btn btn-primary btn-lg w-100 mb-3">
+                    <i class="bi bi-box-arrow-in-right"></i>
+                    Se connecter avec Authentik
+                </a>
+                
+                <p class="text-muted small mb-0">
+                    <i class="bi bi-info-circle"></i>
+                    Vous serez redirigé vers Authentik pour l'authentification
+                </p>
+            </div>
+        </div>
+
+        <!-- Roles Info Card -->
+        <div class="card animate-fade-in" style="animation-delay: 0.1s;">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="bi bi-people-fill text-primary"></i>
+                    Rôles et Permissions
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <div class="info-box h-100" style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.2);">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-shield-check text-success" style="font-size: 1.25rem;"></i>
+                                <strong class="text-success">Groupe "Admins"</strong>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-check text-success"></i> users:read<br>
+                                <i class="bi bi-check text-success"></i> users:update<br>
+                                <i class="bi bi-check text-success"></i> servers:manage
+                            </small>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <div class="info-box h-100" style="background: var(--gray-100); border: 1px solid var(--gray-200);">
+                            <div class="d-flex align-items-center gap-2 mb-2">
+                                <i class="bi bi-person text-secondary" style="font-size: 1.25rem;"></i>
+                                <strong class="text-secondary">Groupe "read_users"</strong>
+                            </div>
+                            <small class="text-muted">
+                                <i class="bi bi-check text-secondary"></i> users:read
+                            </small>
+                        </div>
+                    </div>
+                </div>
+                <div class="alert alert-info mb-0">
+                    <i class="bi bi-info-circle-fill"></i>
+                    <span>Les rôles et permissions sont gérés dans Authentik. Contactez votre administrateur pour toute modification.</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Setup Info Card -->
+        <div class="card animate-fade-in" style="animation-delay: 0.2s;">
+            <div class="card-header gradient-warning">
+                <h5 class="card-title">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                    Configuration requise
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning mb-0">
+                    <div class="fw-semibold mb-2">Avant la première utilisation :</div>
+                    <ol class="mb-0 ps-3">
+                        <li class="mb-1">Démarrer Authentik : <code class="bg-dark text-white px-2 py-1 rounded">docker-compose up -d</code></li>
+                        <li class="mb-1">Accéder à Authentik : <a href="http://localhost:9090" target="_blank" class="text-primary">http://localhost:9090</a></li>
+                        <li class="mb-1">Configurer l'application OAuth2 :
+                            <ul class="mt-1">
+                                <li><strong>Client ID :</strong> <code class="bg-light px-1 rounded">gyPvmpWdp...</code></li>
+                                <li><strong>Redirect URI :</strong> <code class="bg-light px-1 rounded">http://localhost:5000/auth/callback</code></li>
+                                <li><strong>Scopes :</strong> <code class="bg-light px-1 rounded">openid profile email groups</code></li>
+                            </ul>
+                        </li>
+                        <li class="mb-1">Créer les groupes "Admins" et "read_users"</li>
+                        <li>Assigner les utilisateurs aux groupes appropriés</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+console.log('Page de connexion Authentik chargée');
+
+// Vérifier si l'URL d'autorisation est présente
+const authButton = document.querySelector('a[href*="authorize"]');
+if (!authButton) {
+    console.warn('URL d\'autorisation Authentik manquante - vérifiez la configuration');
+}
+</script>
+{% endblock %}

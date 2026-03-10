@@ -1,0 +1,238 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Utilisateur - IAM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div class="page-title-icon" style="background: var(--gradient-info);">
+            <i class="bi bi-eye"></i>
+        </div>
+        <div>
+            <h1>Dashboard Utilisateur</h1>
+            <p>Bienvenue, {{ user.username }} ! Accès en lecture seule.</p>
+        </div>
+    </div>
+    <div class="page-actions">
+        <span class="role-badge-user">
+            <i class="bi bi-person"></i>
+            {{ user.role }}
+        </span>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card animate-fade-in">
+        <div class="stat-icon primary">
+            <i class="bi bi-people-fill"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ users|length }}</h3>
+            <p>Utilisateurs</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.1s">
+        <div class="stat-icon success">
+            <i class="bi bi-shield-check"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ users|selectattr('role', 'equalto', 'Admins')|list|length }}</h3>
+            <p>Administrateurs</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.2s">
+        <div class="stat-icon info">
+            <i class="bi bi-person-check"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ users|selectattr('status', 'equalto', 'actif')|list|length }}</h3>
+            <p>Actifs</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.3s">
+        <div class="stat-icon warning">
+            <i class="bi bi-key-fill"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ user.permissions|length }}</h3>
+            <p>Permissions</p>
+        </div>
+    </div>
+</div>
+
+<!-- Permissions Card -->
+<div class="card animate-fade-in">
+    <div class="card-header gradient-info">
+        <h5 class="card-title">
+            <i class="bi bi-key-fill"></i>
+            Vos Permissions
+        </h5>
+    </div>
+    <div class="card-body">
+        <div class="permissions-grid mb-3">
+            {% for permission in user.permissions %}
+            <div class="permission-tag">
+                <i class="bi bi-check-circle-fill"></i>
+                {{ permission }}
+            </div>
+            {% endfor %}
+        </div>
+        <div class="alert alert-info mb-0">
+            <i class="bi bi-info-circle-fill"></i>
+            <div>
+                <strong>Information :</strong> Vous avez un accès en lecture seule. 
+                Pour des modifications, contactez un administrateur.
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Users List (Read-only) -->
+<div class="card animate-fade-in">
+    <div class="card-header" style="background: var(--gray-500); color: white;">
+        <h5 class="card-title">
+            <i class="bi bi-people-fill"></i>
+            Liste des Utilisateurs
+            <span class="badge badge-light ms-2">Lecture seule</span>
+        </h5>
+        <span class="badge badge-light">{{ users|length }} utilisateurs</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-hash"></i> ID</th>
+                        <th><i class="bi bi-person"></i> Utilisateur</th>
+                        <th><i class="bi bi-envelope"></i> Email</th>
+                        <th><i class="bi bi-shield"></i> Rôle</th>
+                        <th><i class="bi bi-activity"></i> Status</th>
+                        <th><i class="bi bi-eye"></i> Détails</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_item in users %}
+                    <tr>
+                        <td><strong>#{{ user_item.id }}</strong></td>
+                        <td>
+                            <div class="user-cell">
+                                <div class="user-avatar-sm">{{ user_item.username[0]|upper }}</div>
+                                <span>{{ user_item.username }}</span>
+                            </div>
+                        </td>
+                        <td>{{ user_item.email }}</td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if user_item.role == 'Admins' else 'secondary' }}">
+                                <i class="bi bi-{{ 'shield-check' if user_item.role == 'Admins' else 'person' }}"></i>
+                                {{ user_item.role }}
+                            </span>
+                        </td>
+                        <td>
+                            <span class="badge badge-{{ 'success' if user_item.status == 'actif' else 'warning' }}">
+                                <i class="bi bi-{{ 'check-circle' if user_item.status == 'actif' else 'pause-circle' }}"></i>
+                                {{ user_item.status }}
+                            </span>
+                        </td>
+                        <td>
+                            <button class="btn btn-outline-info btn-sm" onclick="viewUserDetails({{ user_item.id }})">
+                                <i class="bi bi-info-circle"></i>
+                                Voir
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- User Details Modal -->
+<div class="modal fade" id="userDetailsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-person-circle text-info"></i>
+                    Détails Utilisateur
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center mb-4">
+                    <div class="profile-avatar mx-auto" id="modalUserAvatar">U</div>
+                </div>
+                <div class="info-box">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Nom d'utilisateur</label>
+                            <div class="form-static" id="modalUsername">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Email</label>
+                            <div class="form-static" id="modalEmail">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Rôle</label>
+                            <div id="modalRole">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Status</label>
+                            <div id="modalStatus">-</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Fermer
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const users = {{ users|tojson }};
+
+function viewUserDetails(userId) {
+    const user = users.find(u => u.id === userId);
+    
+    if (user) {
+        document.getElementById('modalUserAvatar').textContent = user.username[0].toUpperCase();
+        document.getElementById('modalUsername').innerHTML = `<i class="bi bi-person text-primary"></i> ${user.username}`;
+        document.getElementById('modalEmail').innerHTML = `<i class="bi bi-envelope text-primary"></i> ${user.email}`;
+        document.getElementById('modalRole').innerHTML = `
+            <span class="badge badge-${user.role === 'Admins' ? 'success' : 'secondary'}">
+                <i class="bi bi-${user.role === 'Admins' ? 'shield-check' : 'person'}"></i>
+                ${user.role}
+            </span>
+        `;
+        document.getElementById('modalStatus').innerHTML = `
+            <span class="badge badge-${user.status === 'actif' ? 'success' : 'warning'}">
+                <i class="bi bi-${user.status === 'actif' ? 'check-circle' : 'pause-circle'}"></i>
+                ${user.status}
+            </span>
+        `;
+        
+        new bootstrap.Modal(document.getElementById('userDetailsModal')).show();
+    }
+}
+
+// Auto-refresh data
+setInterval(() => {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            console.log('Données utilisateurs mises à jour');
+        })
+        .catch(error => {
+            console.error('Erreur lors du rafraîchissement:', error);
+        });
+}, 30000);
+</script>
+{% endblock %}
