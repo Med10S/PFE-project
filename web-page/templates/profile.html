@@ -31,10 +31,7 @@
         <h2>{{ user.username }}</h2>
         <p>{{ user.email or 'Email non défini' }}</p>
         <div class="d-flex gap-2 mt-2">
-            <span class="badge badge-{{ 'success' if user.role == 'Admins' else 'secondary' }}">
-                <i class="bi bi-shield-check"></i>
-                {{ user.role }}
-            </span>
+           
             <span class="badge badge-success">
                 <i class="bi bi-check-circle"></i>
                 Actif
@@ -69,15 +66,7 @@
                             {{ user.email or 'Non définie' }}
                         </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label class="form-label text-muted">Rôle principal</label>
-                        <div>
-                            <span class="badge badge-{{ 'success' if user.role == 'Admins' else 'secondary' }}" style="font-size: 1rem; padding: 10px 16px;">
-                                <i class="bi bi-shield-check"></i>
-                                {{ user.role }}
-                            </span>
-                        </div>
-                    </div>
+                    
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted">Statut du compte</label>
                         <div>

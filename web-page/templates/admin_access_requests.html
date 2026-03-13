@@ -1,0 +1,296 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des Demandes d'Accès - IAM{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="page-header">
+    <div class="page-title">
+        <div class="page-title-icon">
+            <i class="bi bi-hand-thumbs-up"></i>
+        </div>
+        <div>
+            <h1>Gestion des Demandes d'Accès</h1>
+            <p>Approuvez ou rejetez les demandes d'accès aux serveurs Tailscale.</p>
+        </div>
+    </div>
+    <div class="page-actions">
+        <span class="role-badge-admin">
+            <i class="bi bi-shield-check"></i>
+            Administrateur
+        </span>
+    </div>
+</div>
+
+<!-- Stats Grid -->
+<div class="stats-grid">
+    <div class="stat-card animate-fade-in">
+        <div class="stat-icon warning">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ pending_requests|length }}</h3>
+            <p>En Attente</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.1s">
+        <div class="stat-icon success">
+            <i class="bi bi-check-circle-fill"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ approved_requests|length }}</h3>
+            <p>Approuvées</p>
+        </div>
+    </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.2s">
+        <div class="stat-icon danger">
+            <i class="bi bi-x-circle-fill"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ denied_requests|length }}</h3>
+            <p>Rejetées</p>
+        </div>
+    </div>
+</div>
+
+<!-- Pending Requests -->
+<div class="card animate-fade-in">
+    <div class="card-header" style="background: linear-gradient(135deg, var(--warning) 0%, #d4a574 100%); color: white;">
+        <h5 class="card-title">
+            <i class="bi bi-hourglass-split"></i>
+            Demandes En Attente
+        </h5>
+        <span class="badge badge-light">{{ pending_requests|length }} demandes</span>
+    </div>
+    <div class="card-body p-0">
+        {% if pending_requests|length > 0 %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person"></i> Utilisateur</th>
+                        <th><i class="bi bi-envelope"></i> Email</th>
+                        <th><i class="bi bi-server"></i> Serveur</th>
+                        <th><i class="bi bi-calendar"></i> Demandé le</th>
+                        <th><i class="bi bi-gear"></i> Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in pending_requests %}
+                    <tr>
+                        <td>{{ req.user_name }}</td>
+                        <td>{{ req.user_email }}</td>
+                        <td>{{ req.server_name }}</td>
+                        <td>
+                            <small>{{ req.requested_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </td>
+                        <td>
+                            <button class="btn btn-success btn-sm" onclick="approveRequest({{ req.id }})">
+                                <i class="bi bi-check"></i> Approuver
+                            </button>
+                            <button class="btn btn-danger btn-sm" onclick="denyRequest({{ req.id }})">
+                                <i class="bi bi-x"></i> Rejeter
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info m-3">
+            <i class="bi bi-info-circle-fill"></i> Aucune demande en attente.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Approved Requests -->
+<div class="card animate-fade-in">
+    <div class="card-header" style="background: linear-gradient(135deg, var(--success) 0%, #1f7d3c 100%); color: white;">
+        <h5 class="card-title">
+            <i class="bi bi-check-circle-fill"></i>
+            Demandes Approuvées
+        </h5>
+        <span class="badge badge-light">{{ approved_requests|length }} demandes</span>
+    </div>
+    <div class="card-body p-0">
+        {% if approved_requests|length > 0 %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person"></i> Utilisateur</th>
+                        <th><i class="bi bi-server"></i> Serveur</th>
+                        <th><i class="bi bi-calendar"></i> Approuvé le</th>
+                        <th><i class="bi bi-clock"></i> Expire le</th>
+                        <th><i class="bi bi-shield"></i> Approuvé par</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in approved_requests %}
+                    <tr>
+                        <td>{{ req.user_name }}</td>
+                        <td>{{ req.server_name }}</td>
+                        <td>
+                            <small>{{ req.approved_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </td>
+                        <td>
+                            <small>
+                                {% if req.is_expired() %}
+                                <span class="badge badge-danger">Expiré</span>
+                                {% else %}
+                                {{ req.expires_at.strftime('%d/%m/%Y %H:%M') }}
+                                {% endif %}
+                            </small>
+                        </td>
+                        <td>{{ req.approved_by }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info m-3">
+            <i class="bi bi-info-circle-fill"></i> Aucune demande approuvée.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Denied Requests -->
+<div class="card animate-fade-in">
+    <div class="card-header" style="background: linear-gradient(135deg, var(--danger) 0%, #8b4545 100%); color: white;">
+        <h5 class="card-title">
+            <i class="bi bi-x-circle-fill"></i>
+            Demandes Rejetées
+        </h5>
+        <span class="badge badge-light">{{ denied_requests|length }} demandes</span>
+    </div>
+    <div class="card-body p-0">
+        {% if denied_requests|length > 0 %}
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-person"></i> Utilisateur</th>
+                        <th><i class="bi bi-server"></i> Serveur</th>
+                        <th><i class="bi bi-calendar"></i> Rejeté le</th>
+                        <th><i class="bi bi-shield"></i> Rejeté par</th>
+                        <th><i class="bi bi-chat-left"></i> Notes</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in denied_requests %}
+                    <tr>
+                        <td>{{ req.user_name }}</td>
+                        <td>{{ req.server_name }}</td>
+                        <td>
+                            <small>{{ req.approved_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                        </td>
+                        <td>{{ req.approved_by }}</td>
+                        <td><small>{{ req.admin_notes or '-' }}</small></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="alert alert-info m-3">
+            <i class="bi bi-info-circle-fill"></i> Aucune demande rejetée.
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Deny Modal -->
+<div class="modal fade" id="denyRequestModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="bi bi-x-circle-fill text-danger"></i>
+                    Rejeter la Demande
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="denyForm">
+                    <div class="form-group">
+                        <label class="form-label">Notes (optionnel)</label>
+                        <textarea class="form-control" id="denyNotes" rows="3" placeholder="Raison du rejet..."></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="bi bi-x"></i> Annuler
+                </button>
+                <button type="button" class="btn btn-danger" onclick="submitDeny()">
+                    <i class="bi bi-x-circle-fill"></i> Rejeter
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentRequestId = null;
+
+function approveRequest(requestId) {
+    if (confirm('Êtes-vous sûr de vouloir approuver cette demande?')) {
+        fetch(`/api/access-request/${requestId}/approve`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.message) {
+                showNotification('Demande approuvée avec succès!', 'success');
+                setTimeout(() => location.reload(), 1000);
+            } else {
+                showNotification(data.error || 'Erreur lors de l\'approbation', 'danger');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showNotification('Erreur de communication', 'danger');
+        });
+    }
+}
+
+function denyRequest(requestId) {
+    currentRequestId = requestId;
+    new bootstrap.Modal(document.getElementById('denyRequestModal')).show();
+}
+
+function submitDeny() {
+    if (!currentRequestId) return;
+
+    const notes = document.getElementById('denyNotes').value;
+
+    fetch(`/api/access-request/${currentRequestId}/deny`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notes: notes })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.message) {
+            showNotification('Demande rejetée avec succès!', 'success');
+            setTimeout(() => location.reload(), 1000);
+        } else {
+            showNotification(data.error || 'Erreur lors du rejet', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showNotification('Erreur de communication', 'danger');
+    });
+
+    bootstrap.Modal.getInstance(document.getElementById('denyRequestModal')).hide();
+}
+</script>
+{% endblock %}

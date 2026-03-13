@@ -4,11 +4,13 @@ Application Web Flask avec authentification Authentik IAM et tableau de bord
 
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from auth import (
-    get_current_user, require_login, require_permission, require_role,
+    get_current_user, require_login, require_permission, in_groupe,
     get_authorization_url, exchange_code_for_token, get_user_info, refresh_access_token
 )
+from models import db, AccessRequest
 import os
 import re
+import requests
 from urllib.parse import urlparse
 from authlib.integrations.flask_client import OAuth
 from werkzeug.middleware.proxy_fix import ProxyFix
@@ -16,46 +18,118 @@ app = Flask(__name__)
 app.secret_key = 'EVXFENKv6NESy84NkroEE48xONAyDcEa0UZ4jFkqIp42owAijeA93rsWDEjA8aVvzSqm9zNPvuEkhjSrGlac2OliaZw9R5AiELtc0PQC0jHnBFMFDHHQ0Hikx0vrQiOv'  # À changer en production
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
+# Configuration de la base de données
+# DATABASE_URL est automatiquement générée depuis les variables Docker
+# En Docker: postgresql://user:password@postgres:5432/db_name
+# En local: postgresql://user:password@localhost:5432/db_name
+db_user = os.getenv('POSTGRES_USER',)
+db_password = os.getenv('POSTGRES_PASSWORD',)
+db_host = os.getenv('POSTGRES_HOST', )  
+db_port = os.getenv('POSTGRES_PORT', )
+db_name = os.getenv('POSTGRES_DB',)
+
+DATABASE_URL = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}'
+
+app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
+app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+db.init_app(app)
+
 # Configuration des sessions
 app.config['SESSION_TYPE'] = 'filesystem'
-oauth = OAuth(app)
-# Enregistrement du client authentik
-oauth.register(
-    name='authentik',
-    client_id='gyPvmpWdpbjOyk0iaP5hfobyfTCHlfKLinFOV4B4',
-    client_secret='EVXFENKv6NESy84NkroEE48xONAyDcEa0UZ4jFkqIp42owAijeA93rsWDEjA8aVvzSqm9zNPvuEkhjSrGlac2OliaZw9R5AiELtc0PQC0jHnBFMFDHHQ0Hikx0vrQiOv',
-    server_metadata_url='http://localhost:9090/application/o/portail-interne/.well-known/openid-configuration',
-    client_kwargs={
-        'scope': 'openid profile email',
-    }
-)
-# Données simulées pour les fonctionnalités
-USERS_LIST = [
-    {"id": 1, "username": "admin", "email": "admin@example.com", "role": "Admins", "status": "actif"},
-    {"id": 2, "username": "john", "email": "john@example.com", "role": "read_users", "status": "actif"},
-    {"id": 3, "username": "marie", "email": "marie@example.com", "role": "read_users", "status": "actif"},
-    {"id": 4, "username": "supervisor", "email": "super@example.com", "role": "Admins", "status": "actif"},
-]
 
-SERVERS_LIST = [
-    {"id": 1, "name": "Web Server 01", "status": "en ligne", "cpu": "45%", "memory": "67%"},
-    {"id": 2, "name": "Database Server", "status": "en ligne", "cpu": "23%", "memory": "54%"},
-    {"id": 3, "name": "API Server", "status": "maintenance", "cpu": "12%", "memory": "34%"},
-    {"id": 4, "name": "Backup Server", "status": "en ligne", "cpu": "8%", "memory": "28%"},
-]
+# Configuration Tailscale API
+TAILSCALE_API_TOKEN = os.getenv('TAILSCALE_API_TOKEN', '')
+TAILSCALE_TAILNET = os.getenv('TAILSCALE_TAILNET', '')
+TAILSCALE_BASE_URL = 'https://api.tailscale.com/api/v2'
+
+# ===== Fonctions utilitaires Tailscale =====
+def get_tailscale_headers():
+    """Retourne les headers pour les requêtes Tailscale API"""
+    return {
+        'Authorization': f'Bearer {TAILSCALE_API_TOKEN}',
+        'Content-Type': 'application/json'
+    }
+
+def get_tailscale_devices():
+    """Récupère tous les devices/machines de Tailscale avec leurs tags"""
+    try:
+        url = f"{TAILSCALE_BASE_URL}/tailnet/{TAILSCALE_TAILNET}/devices"
+        response = requests.get(url, headers=get_tailscale_headers(), timeout=10)
+        if response.status_code == 200:
+            devices = response.json().get('devices', [])
+            return [
+                {
+                    'id': device.get('id'),
+                    'name': device.get('name'),
+                    'hostname': device.get('hostname'),
+                    'user': device.get('user'),
+                    'addresses': device.get('addresses', []),
+                    'tags': device.get('tags', []),
+                    'status': 'en ligne' if device.get('connectedToControl') else 'hors ligne',
+                    'os': device.get('os'),
+                    'lastSeen': device.get('lastSeen'),
+                }
+                for device in devices
+            ]
+        return []
+    except Exception as e:
+        print(f"Erreur lors de la récupération des devices: {e}")
+        return []
+
+def get_tailscale_users():
+    """Récupère tous les utilisateurs de Tailscale"""
+    try:
+        url = f"{TAILSCALE_BASE_URL}/tailnet/{TAILSCALE_TAILNET}/users"
+        response = requests.get(url, headers=get_tailscale_headers(), timeout=10)
+        if response.status_code == 200:
+            users = response.json().get('users', [])
+            return [
+                {
+                    'id': user.get('id'),
+                    'displayName': user.get('displayName'),
+                    'loginName': user.get('loginName'),
+                    'role': user.get('role'),
+                    'status': user.get('status'),
+                    'deviceCount': user.get('deviceCount'),
+                    'currentlyConnected': user.get('currentlyConnected'),
+                }
+                for user in users
+            ]
+        return []
+    except Exception as e:
+        print(f"Erreur lors de la récupération des utilisateurs: {e}")
+        return []
+
+def filter_devices_by_user_tags(devices, user_tags):
+    """Filtre les devices en fonction des tags de l'utilisateur"""
+    accessible = []
+    not_accessible = []
+
+    for device in devices:
+        device_tags = set(device.get('tags', []))
+        user_tags_set = set(user_tags)
+
+        if device_tags & user_tags_set:  # Intersection
+            accessible.append(device)
+        else:
+            not_accessible.append(device)
+
+    return accessible, not_accessible
 
 @app.route('/')
+@require_login
 def index():
     user = get_current_user() 
+    print(f"Accès à l'index pour {user.username} avec rôle {user.groups} et permissions {user.permissions}")
     if user:
-        if user.role == 'Admins':
+        if 'authentik Admins' in user.groups:
+            print(f"Redirection vers le dashboard admin pour {user.username}")
             return redirect(url_for('admin_dashboard'))
-        if user.role == 'read_users':
+        if 'dev' in user.groups:
             return redirect(url_for('user_dashboard'))
-
     # Si pas d'utilisateur valide ou rôle inconnu, on nettoie TOUT et on va au login
     session.clear()
-    flash('Connexion réussie, mais aucun rôle valide assigné.', 'warning')
+    flash(f"Connexion réussie, mais aucun rôle valide assigné pour {user.username}", 'warning')
     return redirect(url_for('login'))
 
 def _is_valid_webfinger_resource(resource: str) -> bool:
@@ -113,6 +187,7 @@ def login():
     # Sinon on affiche la page avec le bouton de connexion
     auth_url = get_authorization_url()
     return render_template('login_authentik.html', auth_url=auth_url)
+
 @app.route('/auth/callback')
 def auth_callback():
     try:
@@ -142,36 +217,47 @@ def logout():
     # Redirection vers Authentik pour fermer la session globale
     # L'URL dépend de votre configuration, souvent : /application/o/portail-interne/end-session/
     authentik_logout_url = (
-        "http://localhost:9090/application/o/portail-interne/end-session/?"
+        "https://authentik.sbihi.tech/application/o/portail-interne/end-session/?"
         f"post_logout_redirect_uri={url_for('login', _external=True)}"
     )
     return redirect(authentik_logout_url)
 @app.route('/admin/dashboard')
 @require_login
-@require_role('Admins')
+@in_groupe('authentik Admins')
 def admin_dashboard():
     """Dashboard pour les administrateurs"""
     user = get_current_user()
     if not user:
         return redirect(url_for('login'))
+
+    users = get_tailscale_users()
+    devices = get_tailscale_devices()
+
     print(f"Accès au dashboard admin pour {user.username} avec rôle {user.role} et permissions {user.permissions}")
-    return render_template('admin_dashboard.html', 
-                         user=user, 
-                         users=USERS_LIST, 
-                         servers=SERVERS_LIST)
+    return render_template('admin_dashboard.html',
+                         user=user,
+                         users=users,
+                         servers=devices)
 
 @app.route('/user/dashboard')
 @require_login
-@require_role('read_users')
 def user_dashboard():
     """Dashboard pour les utilisateurs en lecture seule"""
     user = get_current_user()
     if not user:
         return redirect(url_for('login'))
-    
-    return render_template('user_dashboard.html', 
-                         user=user, 
-                         users=USERS_LIST)
+
+    users = get_tailscale_users()
+    devices = get_tailscale_devices()
+
+    # Filtrer les devices accessibles basé sur les tags de l'utilisateur
+    accessible_devices, not_accessible_devices = filter_devices_by_user_tags(devices, user.tags)
+
+    return render_template('user_dashboard.html',
+                         user=user,
+                         users=users,
+                         accessible_devices=accessible_devices,
+                         not_accessible_devices=not_accessible_devices)
 
 @app.route('/profile')
 @require_login
@@ -187,39 +273,35 @@ def profile():
 @require_login
 @require_permission('users:read')
 def api_users():
-    """API pour récupérer la liste des utilisateurs"""
-    return jsonify(USERS_LIST)
+    """API pour récupérer la liste des utilisateurs Tailscale"""
+    users = get_tailscale_users()
+    return jsonify(users)
 
 @app.route('/api/users/<int:user_id>', methods=['PUT'])
 @require_login
 @require_permission('users:update')
 def api_update_user(user_id):
-    """API pour mettre à jour un utilisateur"""
+    """API pour mettre à jour un utilisateur via Tailscale"""
+    # Cette route peut appeler l'API Tailscale pour mettre à jour les utilisateurs
     data = request.get_json()
-    # Simulation de mise à jour
-    for user in USERS_LIST:
-        if user['id'] == user_id:
-            user.update(data)
-            return jsonify({"message": "Utilisateur mis à jour avec succès", "user": user})
-    return jsonify({"error": "Utilisateur non trouvé"}), 404
+    return jsonify({"message": "Utilisateur mis à jour avec succès", "user_id": user_id})
 
 @app.route('/api/servers')
 @require_login
 @require_permission('servers:manage')
 def api_servers():
-    """API pour récupérer la liste des serveurs"""
-    return jsonify(SERVERS_LIST)
+    """API pour récupérer la liste des serveurs/devices Tailscale"""
+    devices = get_tailscale_devices()
+    return jsonify(devices)
 
 @app.route('/api/servers/<int:server_id>/restart', methods=['POST'])
 @require_login
 @require_permission('servers:manage')
 def api_restart_server(server_id):
-    """API pour redémarrer un serveur"""
-    for server in SERVERS_LIST:
-        if server['id'] == server_id:
-            server['status'] = 'redémarrage en cours'
-            return jsonify({"message": f"Serveur {server['name']} en cours de redémarrage"})
-    return jsonify({"error": "Serveur non trouvé"}), 404
+    """API pour demander accès à un serveur"""
+    # Cette route peut être modifiée pour appeler l'API Tailscale
+    # ou pour enregistrer une demande dans la DB
+    return jsonify({"message": "Demande d'accès enregistrée", "server_id": server_id})
 
 @app.route('/api/refresh-token', methods=['POST'])
 @require_login
@@ -230,7 +312,160 @@ def api_refresh_token():
     else:
         return jsonify({"error": "Impossible de rafraîchir le token"}), 401
 
+# ===== Routes d'administration des demandes d'accès =====
+@app.route('/admin/access-requests')
+@require_login
+@in_groupe('authentik Admins')
+def admin_access_requests():
+    """Dashboard pour gérer les demandes d'accès"""
+    user = get_current_user()
+    if not user:
+        return redirect(url_for('login'))
+
+    # Récupérer toutes les demandes
+    pending = AccessRequest.query.filter_by(status='pending').all()
+    approved = AccessRequest.query.filter_by(status='approved').all()
+    denied = AccessRequest.query.filter_by(status='denied').all()
+
+    return render_template('admin_access_requests.html',
+                         user=user,
+                         pending_requests=pending,
+                         approved_requests=approved,
+                         denied_requests=denied)
+
+@app.route('/api/access-request/<int:request_id>/approve', methods=['POST'])
+@require_login
+@in_groupe('authentik Admins')
+def api_approve_request(request_id):
+    """Approuver une demande d'accès"""
+    user = get_current_user()
+    access_req = AccessRequest.query.get(request_id)
+
+    if not access_req:
+        return jsonify({"error": "Demande non trouvée"}), 404
+
+    # TODO: Ajouter l'utilisateur au groupe Tailscale correspondant
+    access_req.approve(user.email)
+
+    return jsonify({
+        "message": "Demande approuvée avec succès",
+        "expires_at": access_req.expires_at.isoformat()
+    })
+
+@app.route('/api/access-request/<int:request_id>/deny', methods=['POST'])
+@require_login
+@in_groupe('authentik Admins')
+def api_deny_request(request_id):
+    """Rejetter une demande d'accès"""
+    user = get_current_user()
+    data = request.get_json()
+    notes = data.get('notes', '')
+
+    access_req = AccessRequest.query.get(request_id)
+
+    if not access_req:
+        return jsonify({"error": "Demande non trouvée"}), 404
+
+    access_req.deny(user.email, notes)
+
+    return jsonify({"message": "Demande rejetée avec succès"})
+
+@app.route('/api/access-requests')
+@require_login
+@in_groupe('authentik Admins')
+def api_access_requests():
+    """API pour récupérer toutes les demandes d'accès"""
+    pending = AccessRequest.query.filter_by(status='pending').all()
+    approved = AccessRequest.query.filter_by(status='approved').all()
+    denied = AccessRequest.query.filter_by(status='denied').all()
+
+    return jsonify({
+        "pending": [
+            {
+                "id": r.id,
+                "user_name": r.user_name,
+                "user_email": r.user_email,
+                "server_name": r.server_name,
+                "requested_at": r.requested_at.isoformat()
+            }
+            for r in pending
+        ],
+        "approved": [
+            {
+                "id": r.id,
+                "user_name": r.user_name,
+                "server_name": r.server_name,
+                "approved_at": r.approved_at.isoformat(),
+                "expires_at": r.expires_at.isoformat() if r.expires_at else None
+            }
+            for r in approved
+        ],
+        "denied": [
+            {
+                "id": r.id,
+                "user_name": r.user_name,
+                "server_name": r.server_name,
+                "denied_at": r.approved_at.isoformat(),
+                "notes": r.admin_notes
+            }
+            for r in denied
+        ]
+    })
+@app.route('/api/request-access', methods=['POST'])
+@require_login
+def api_request_access():
+    """API pour demander accès à un serveur"""
+    data = request.get_json()
+    server_id = data.get('server_id')
+    user = get_current_user()
+
+    if not server_id or not user:
+        return jsonify({"error": "Données manquantes"}), 400
+
+    # Récupère les informations du serveur
+    devices = get_tailscale_devices()
+    server = next((d for d in devices if d['id'] == server_id), None)
+
+    if not server:
+        return jsonify({"error": "Serveur non trouvé"}), 404
+
+    # Vérifier si une demande existe déjà
+    existing_request = AccessRequest.query.filter_by(
+        user_email=user.email,
+        server_id=server_id,
+        status='pending'
+    ).first()
+
+    if existing_request:
+        return jsonify({"error": "Une demande est déjà en cours pour ce serveur"}), 400
+
+    # Créer une nouvelle demande
+    access_request = AccessRequest(
+        user_email=user.email,
+        user_name=user.username,
+        server_id=server_id,
+        server_name=server.get('name', server_id)
+    )
+
+    try:
+        db.session.add(access_request)
+        db.session.commit()
+        return jsonify({
+            "message": "Demande d'accès enregistrée avec succès",
+            "user": user.username,
+            "server_id": server_id,
+            "request_id": access_request.id
+        }), 201
+    except Exception as e:
+        db.session.rollback()
+        print(f"Erreur lors de l'enregistrement de la demande: {e}")
+        return jsonify({"error": "Erreur lors de l'enregistrement de la demande"}), 500
+
 if __name__ == '__main__':
+    with app.app_context():
+        # Créer les tables si elles n'existent pas
+        db.create_all()
+
     host = os.getenv('FLASK_HOST', '0.0.0.0')
     port = int(os.getenv('FLASK_PORT', '5000'))
     use_ssl = os.getenv('FLASK_USE_SSL', 'false').lower() == 'true'

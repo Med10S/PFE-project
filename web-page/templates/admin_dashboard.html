@@ -38,7 +38,7 @@
             <i class="bi bi-shield-check"></i>
         </div>
         <div class="stat-content">
-            <h3>{{ users|selectattr('role', 'equalto', 'Admins')|list|length }}</h3>
+            <h3>{{ users|selectattr('role', 'equalto', 'admin')|list|length }}</h3>
             <p>Administrateurs</p>
         </div>
     </div>
@@ -87,7 +87,7 @@
     <div class="card-header gradient-primary">
         <h5 class="card-title">
             <i class="bi bi-people-fill"></i>
-            Gestion des Utilisateurs
+            Gestion des Utilisateurs Tailscale
         </h5>
         <span class="badge badge-light">{{ users|length }} utilisateurs</span>
     </div>
@@ -96,39 +96,39 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th><i class="bi bi-hash"></i> ID</th>
                         <th><i class="bi bi-person"></i> Utilisateur</th>
                         <th><i class="bi bi-envelope"></i> Email</th>
                         <th><i class="bi bi-shield"></i> Rôle</th>
                         <th><i class="bi bi-activity"></i> Status</th>
+                        <th><i class="bi bi-hdd-rack"></i> Devices</th>
                         <th><i class="bi bi-gear"></i> Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for user_item in users %}
                     <tr>
-                        <td><strong>#{{ user_item.id }}</strong></td>
                         <td>
                             <div class="user-cell">
-                                <div class="user-avatar-sm">{{ user_item.username[0]|upper }}</div>
-                                <span>{{ user_item.username }}</span>
+                                <div class="user-avatar-sm">{{ user_item.displayName[0]|upper }}</div>
+                                <span>{{ user_item.displayName }}</span>
                             </div>
                         </td>
-                        <td>{{ user_item.email }}</td>
+                        <td>{{ user_item.loginName }}</td>
                         <td>
-                            <span class="badge badge-{{ 'success' if user_item.role == 'Admins' else 'secondary' }}">
-                                <i class="bi bi-{{ 'shield-check' if user_item.role == 'Admins' else 'person' }}"></i>
+                            <span class="badge badge-{{ 'success' if user_item.role == 'admin' else 'secondary' }}">
+                                <i class="bi bi-{{ 'shield-check' if user_item.role == 'admin' else 'person' }}"></i>
                                 {{ user_item.role }}
                             </span>
                         </td>
                         <td>
-                            <span class="badge badge-{{ 'success' if user_item.status == 'actif' else 'warning' }}">
-                                <i class="bi bi-{{ 'check-circle' if user_item.status == 'actif' else 'pause-circle' }}"></i>
+                            <span class="badge badge-{{ 'success' if user_item.status == 'active' else 'warning' }}">
+                                <i class="bi bi-{{ 'check-circle' if user_item.status == 'active' else 'pause-circle' }}"></i>
                                 {{ user_item.status }}
                             </span>
                         </td>
+                        <td><strong>{{ user_item.deviceCount }}</strong></td>
                         <td>
-                            <button class="btn btn-outline-primary btn-sm" onclick="editUser({{ user_item.id }})">
+                            <button class="btn btn-outline-primary btn-sm" onclick="editUser('{{ user_item.id }}')">
                                 <i class="bi bi-pencil"></i>
                                 Modifier
                             </button>
@@ -146,7 +146,7 @@
     <div class="card-header gradient-warning">
         <h5 class="card-title">
             <i class="bi bi-server"></i>
-            Gestion des Serveurs
+            Gestion des Serveurs Tailscale
         </h5>
         <span class="badge badge-dark">{{ servers|length }} serveurs</span>
     </div>
@@ -155,50 +155,44 @@
             <table class="table">
                 <thead>
                     <tr>
-                        <th><i class="bi bi-hash"></i> ID</th>
-                        <th><i class="bi bi-server"></i> Nom</th>
+                        <th><i class="bi bi-hdd-rack"></i> Nom</th>
+                        <th><i class="bi bi-unix"></i> Hostname</th>
+                        <th><i class="bi bi-person"></i> Propriétaire</th>
+                        <th><i class="bi bi-tags"></i> Tags</th>
                         <th><i class="bi bi-activity"></i> Status</th>
-                        <th><i class="bi bi-cpu"></i> CPU</th>
-                        <th><i class="bi bi-memory"></i> Mémoire</th>
                         <th><i class="bi bi-gear"></i> Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for server in servers %}
                     <tr>
-                        <td><strong>#{{ server.id }}</strong></td>
                         <td>
                             <div class="d-flex align-items-center gap-2">
                                 <i class="bi bi-hdd-rack text-info"></i>
-                                <span>{{ server.name }}</span>
+                                <span title="{{ server.name }}">{{ server.name[:40] }}</span>
                             </div>
+                        </td>
+                        <td><code>{{ server.hostname }}</code></td>
+                        <td>
+                            <small>{{ server.user.split('@')[0] if server.user else 'N/A' }}</small>
+                        </td>
+                        <td>
+                            {% for tag in server.tags %}
+                            <span class="badge badge-info">{{ tag }}</span>
+                            {% else %}
+                            <span class="badge badge-secondary">Aucun tag</span>
+                            {% endfor %}
                         </td>
                         <td>
                             <span class="badge badge-{{ 'success' if server.status == 'en ligne' else 'warning' }}">
-                                <i class="bi bi-{{ 'circle-fill' if server.status == 'en ligne' else 'wrench' }}"></i>
+                                <i class="bi bi-circle-fill"></i>
                                 {{ server.status }}
                             </span>
                         </td>
-                        <td style="min-width: 150px;">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="progress" style="flex: 1; height: 8px;">
-                                    <div class="progress-bar primary" style="width: {{ server.cpu }}"></div>
-                                </div>
-                                <small class="text-muted">{{ server.cpu }}</small>
-                            </div>
-                        </td>
-                        <td style="min-width: 150px;">
-                            <div class="d-flex align-items-center gap-2">
-                                <div class="progress" style="flex: 1; height: 8px;">
-                                    <div class="progress-bar info" style="width: {{ server.memory }}"></div>
-                                </div>
-                                <small class="text-muted">{{ server.memory }}</small>
-                            </div>
-                        </td>
                         <td>
-                            <button class="btn btn-outline-warning btn-sm" onclick="restartServer({{ server.id }})">
-                                <i class="bi bi-arrow-clockwise"></i>
-                                Redémarrer
+                            <button class="btn btn-outline-info btn-sm" onclick="viewServerDetails('{{ server.id }}')">
+                                <i class="bi bi-info-circle"></i>
+                                Détails
                             </button>
                         </td>
                     </tr>
@@ -209,109 +203,88 @@
     </div>
 </div>
 
-<!-- Edit User Modal -->
-<div class="modal fade" id="editUserModal" tabindex="-1">
+<!-- Server Details Modal -->
+<div class="modal fade" id="serverDetailsModal" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title">
-                    <i class="bi bi-pencil-square text-primary"></i>
-                    Modifier Utilisateur
+                    <i class="bi bi-hdd-rack text-info"></i>
+                    Détails du Serveur
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                <form id="editUserForm">
-                    <div class="form-group">
-                        <label class="form-label">Nom d'utilisateur</label>
-                        <input type="text" class="form-control" id="editUsername" readonly>
+                <div class="info-box">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">Nom</label>
+                            <div class="form-static" id="modalServerName">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">Hostname</label>
+                            <div class="form-static" id="modalServerHostname">-</div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label class="form-label text-muted">OS</label>
+                            <div class="form-static" id="modalServerOS">-</div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">Propriétaire</label>
+                            <div class="form-static" id="modalServerOwner">-</div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">Tags</label>
+                            <div id="modalServerTags">-</div>
+                        </div>
+                        <div class="col-md-12 mb-3">
+                            <label class="form-label text-muted">Adresses IP</label>
+                            <div id="modalServerAddresses">-</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Email</label>
-                        <input type="email" class="form-control" id="editEmail" placeholder="email@exemple.com">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Status</label>
-                        <select class="form-control" id="editStatus">
-                            <option value="actif">✓ Actif</option>
-                            <option value="inactif">⏸ Inactif</option>
-                        </select>
-                    </div>
-                </form>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-                    <i class="bi bi-x"></i> Annuler
-                </button>
-                <button type="button" class="btn btn-primary" onclick="saveUser()">
-                    <i class="bi bi-check"></i> Sauvegarder
+                    <i class="bi bi-x"></i> Fermer
                 </button>
             </div>
         </div>
     </div>
 </div>
+
 {% endblock %}
 
 {% block scripts %}
 <script>
-let currentEditUserId = null;
+const servers = {{ servers|tojson }};
+const users = {{ users|tojson }};
 
 function editUser(userId) {
-    const users = {{ users|tojson }};
-    const user = users.find(u => u.id === userId);
-    
-    if (user) {
-        currentEditUserId = userId;
-        document.getElementById('editUsername').value = user.username;
-        document.getElementById('editEmail').value = user.email;
-        document.getElementById('editStatus').value = user.status;
-        
-        new bootstrap.Modal(document.getElementById('editUserModal')).show();
-    }
+    // Placeholder for future Tailscale user editing
+    showNotification('Édition des utilisateurs Tailscale - À implémenter', 'info');
 }
 
-function saveUser() {
-    if (!currentEditUserId) return;
-    
-    const data = {
-        email: document.getElementById('editEmail').value,
-        status: document.getElementById('editStatus').value
-    };
-    
-    fetch(`/api/users/${currentEditUserId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.message) {
-            showNotification('Utilisateur mis à jour avec succès!', 'success');
-            setTimeout(() => location.reload(), 1000);
-        } else {
-            showNotification('Erreur lors de la mise à jour', 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showNotification('Erreur de communication', 'danger');
-    });
-    
-    bootstrap.Modal.getInstance(document.getElementById('editUserModal')).hide();
-}
+function viewServerDetails(serverId) {
+    const server = servers.find(s => s.id === serverId);
 
-function restartServer(serverId) {
-    if (confirm('Êtes-vous sûr de vouloir redémarrer ce serveur?')) {
-        fetch(`/api/servers/${serverId}/restart`, { method: 'POST' })
-        .then(response => response.json())
-        .then(data => {
-            showNotification(data.message || data.error, data.message ? 'success' : 'danger');
-            if (data.message) setTimeout(() => location.reload(), 1000);
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            showNotification('Erreur de communication', 'danger');
-        });
+    if (server) {
+        document.getElementById('modalServerName').textContent = server.name;
+        document.getElementById('modalServerHostname').innerHTML = `<code>${server.hostname}</code>`;
+        document.getElementById('modalServerOS').textContent = server.os || 'N/A';
+        document.getElementById('modalServerOwner').textContent = server.user || 'N/A';
+
+        const tagsHtml = server.tags.length > 0
+            ? server.tags.map(tag => `<span class="badge badge-info">${tag}</span>`).join(' ')
+            : '<span class="badge badge-secondary">Aucun tag</span>';
+        document.getElementById('modalServerTags').innerHTML = tagsHtml;
+
+        const ipsHtml = server.addresses.length > 0
+            ? server.addresses.map(ip => `<code>${ip}</code>`).join('<br>')
+            : '<span class="text-muted">N/A</span>';
+        document.getElementById('modalServerAddresses').innerHTML = ipsHtml;
+
+        new bootstrap.Modal(document.getElementById('serverDetailsModal')).show();
     }
 }
 </script>

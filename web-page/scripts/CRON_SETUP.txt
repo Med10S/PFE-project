@@ -1,0 +1,20 @@
+# Cron job pour expirer les accès Tailscale tous les 6 heures
+#
+# OPTION 1: Avec Docker (Recommandé)
+# Installation: crontab -e, puis ajouter cette ligne:
+#
+# 0 */6 * * * docker exec iam_web python3 scripts/expire_access.py >> /path/to/logs/cron.log 2>&1
+#
+# OPTION 2: En local (Sans Docker)
+# Installation: crontab -e, puis ajouter cette ligne:
+#
+# 0 */6 * * * cd /path/to/web-page && /usr/bin/python3 scripts/expire_access.py >> logs/cron.log 2>&1
+#
+# Note: Remplacez /path/to par le chemin réel du répertoire
+#
+# Test du cron job:
+# - Manuel: docker exec iam_web python3 scripts/expire_access.py
+# - Logs: docker logs iam_web (pour voir les logs Flask)
+# - Cron logs: tail -f /var/log/syslog | grep CRON (Linux)
+#
+# Ou utiliser systemd timer pour plus de contrôle (voir fichiers .service et .timer en root)

@@ -28,6 +28,15 @@
                         <i class="bi bi-speedometer2"></i>
                         <span>Dashboard</span>
                     </a>
+
+                    <!-- Menu conditionnel pour les admins -->
+                    {% if session.user_data and 'authentik Admins' in session.user_data.groups %}
+                    <a href="{{ url_for('admin_access_requests') }}" class="nav-btn {% if request.endpoint == 'admin_access_requests' %}active{% endif %}">
+                        <i class="bi bi-hand-thumbs-up"></i>
+                        <span>Demandes d'Accès</span>
+                    </a>
+                    {% endif %}
+
                     <a href="{{ url_for('profile') }}" class="nav-btn {% if request.endpoint == 'profile' %}active{% endif %}">
                         <i class="bi bi-person-badge"></i>
                         <span>Profil</span>

@@ -13,15 +13,17 @@ from requests_oauthlib import OAuth2Session
 os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
     
 # Configuration Authentik
+_base_url = os.getenv('AUTHENTIK_BASE_URL', '').rstrip('/')
+
 AUTHENTIK_CONFIG = {
-    'client_id': os.getenv('AUTHENTIK_CLIENT_ID', 'YT4QkkhEI2b26sE8Df12oeeNy95qPnt1anrsCSyX'),
-    'client_secret': os.getenv('AUTHENTIK_CLIENT_SECRET', 'FoxFN55CaZ0mPhDDHAb8FWcUGd0TtnClBjrzA72DiGzQG4watNo1PKNtMa7iEvfx5PXVUPSV7J9Ig0HWiyWlXkOr0vR5bRSw6c6CnaH36kpeibtbln8kxBrps6OJzxUS'),
-    'base_url': os.getenv('AUTHENTIK_BASE_URL', 'http://localhost:9090'),
-    'authorization_url': os.getenv('AUTHENTIK_AUTHORIZATION_URL', 'http://localhost:9090/application/o/authorize/'),
-    'token_url': os.getenv('AUTHENTIK_TOKEN_URL', 'http://localhost:9090/application/o/token/'),
-    'userinfo_url': os.getenv('AUTHENTIK_USERINFO_URL', 'http://localhost:9090/application/o/userinfo/'),
-    'scope': ['openid', 'profile', 'email', 'groups', 'offline_access', 'permissions_groupes'],
-    'redirect_uri': os.getenv('AUTHENTIK_REDIRECT_URI', 'http://localhost:5000/auth/callback')
+    'client_id': os.getenv('AUTHENTIK_CLIENT_ID'),
+    'client_secret': os.getenv('AUTHENTIK_CLIENT_SECRET'),
+    'base_url': _base_url,
+    'authorization_url': os.getenv('AUTHENTIK_AUTHORIZATION_URL', f'{_base_url}/application/o/authorize/'),
+    'token_url': os.getenv('AUTHENTIK_TOKEN_URL', f'{_base_url}/application/o/token/'),
+    'userinfo_url': os.getenv('AUTHENTIK_USERINFO_URL', f'{_base_url}/application/o/userinfo/'),
+    'scope': ['openid', 'profile', 'email', 'groups', 'offline_access', 'permissions'],
+    'redirect_uri': os.getenv('AUTHENTIK_REDIRECT_URI', '')
 }
 
 class User:
@@ -31,7 +33,8 @@ class User:
         self.groups = groups
         self.permissions = permissions
         self.role = self.get_primary_role()
-    
+        self.tags = self.get_user_tags()
+
     def get_primary_role(self):
         """Détermine le rôle principal basé sur les groupes"""
         if 'Admins' in self.groups:
@@ -40,6 +43,23 @@ class User:
             return 'read_users'
         else:
             return 'unknown'
+
+    def get_user_tags(self):
+        """Mappe les groupes Authentik aux tags Tailscale"""
+        tags = []
+        group_to_tag_mapping = {
+            'dev': 'tag:dev',
+            'prod': 'tag:prod',
+            'admin': 'tag:admin',
+            'read_users': 'tag:user',
+            'Admins': 'tag:admin',
+        }
+
+        for group in self.groups:
+            if group in group_to_tag_mapping:
+                tags.append(group_to_tag_mapping[group])
+
+        return tags
 
 def create_oauth_session():
     """Crée une session OAuth2 avec la configuration correcte"""
@@ -84,6 +104,7 @@ def get_current_user():
     """Récupère l'utilisateur depuis la session SANS appel réseau"""
     if 'user_data' in session:
         data = session['user_data']
+        print(f"Récupération de l'utilisateur depuis la session: {data}")
         return User(
             username=data['username'],
             email=data['email'],
@@ -100,20 +121,16 @@ def get_user_info(access_token):
             return None
         
         user_info = response.json()
+        print(f"User info raw from Authentik: {user_info}")
         groups = user_info.get('groups', [])
         
         # Récupération des attributs envoyés par Authentik
-        # On suppose que tu as mappé les attributs sous la clé 'group_permissions'
-        group_attrs = user_info.get('permissions', [])
+        permissions = []
+        permissions = user_info.get('permissions', [])
         
         # On commence avec une permission de base
-        permissions = []
         
-        # On parcourt les attributs de chaque groupe pour ajouter les permissions
-        for attr in group_attrs:
-            if 'permissions' in attr:
-                # attr['permissions'] est probablement une liste définie dans Authentik
-                permissions.extend(attr['permissions'])
+       
 
         # Supprimer les doublons
         permissions = list(set(permissions))
@@ -156,18 +173,17 @@ def require_permission(permission):
         return decorated_function
     return decorator
 
-def require_role(role):
+def in_groupe(groupe):
     """Décorateur qui nécessite un rôle spécifique"""
     def decorator(f):
         @wraps(f)
         def decorated_function(*args, **kwargs):
             user = get_current_user()
-            
-            # Logique d'autorisation plus flexible
-            # Un admin a accès à tout ce que 'read_users' peut faire
-            if not user or (user.role != role and not (user.role == 'Admins' and role == 'read_users')):
-                flash(f'Accès refusé. Rôle requis: {role}', 'error')
+            usergroups = user.groups if user else []
+            if groupe not in usergroups:
+                flash(f'Accès refusé. Groupe requis: {groupe}', 'error')
                 return redirect(url_for('login'))
+
                 
             return f(*args, **kwargs)
         return decorated_function
