@@ -14,7 +14,9 @@ from sqlalchemy.orm import sessionmaker
 sys.path.insert(0, os.path.dirname(__file__))
 
 from models import AccessRequest, db
-
+from ACL_work.tailscale_acl_api import (
+    cleanup_expired_requests
+)
 # Configuration de la base de données depuis les variables Docker
 db_user = os.getenv('DB_USER', 'iam_user')
 db_password = os.getenv('DB_PASSWORD', 'iam_password_change_me')
@@ -44,7 +46,16 @@ def expire_old_accesses():
         for access in expired_accesses:
             access.status = 'expired'
             print(f"[EXPIRATION] {access.user_name} - Accès à {access.server_name} expiré")
-            # TODO: Retirer l'utilisateur du groupe Tailscale
+            removed_count, removed_list = cleanup_expired_requests(AccessRequest, db)
+
+            print(f"Nettoyage effectué:")
+            print(f"  - Accès supprimés: {removed_count}")
+            if removed_list:
+                print(f"  - Détails:")
+                for access in removed_list:
+                    print(f"    • {access}")
+            else:
+                print(f"  - Rien à nettoyer")
 
         session.commit()
         session.close()

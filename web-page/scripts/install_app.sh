@@ -146,28 +146,6 @@ create_tables() {
   (cd "$ROOT_DIR" && docker compose exec -T web python3 -c "from app import app, db; ctx=app.app_context(); ctx.push(); db.create_all(); ctx.pop(); print('tables initialized')")
 }
 
-install_cron_if_requested() {
-  local answer=""
-  read -rp "Ajouter automatiquement le cron job d'expiration (toutes les 6h) ? [y/N]: " answer
-  answer="${answer,,}"
-
-  if [[ "$answer" != "y" && "$answer" != "yes" ]]; then
-    log "Cron non ajouté."
-    return
-  fi
-
-  local cron_line="0 */6 * * * cd ${ROOT_DIR} && docker exec iam_web python3 scripts/expire_access.py >> ${ROOT_DIR}/logs/cron.log 2>&1"
-
-  local current_cron
-  current_cron="$(crontab -l 2>/dev/null || true)"
-  if echo "$current_cron" | grep -Fq "docker exec iam_web python3 scripts/expire_access.py"; then
-    log "Cron déjà présent."
-    return
-  fi
-
-  printf "%s\n%s\n" "$current_cron" "$cron_line" | crontab -
-  log "Cron ajouté avec succès."
-}
 
 main() {
   require_cmd python3
@@ -203,7 +181,6 @@ main() {
   ensure_authentik_network
   start_stack
   create_tables
-  install_cron_if_requested
 
   log "Installation terminée."
   log "Application: http://localhost:5000"

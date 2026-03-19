@@ -4,6 +4,7 @@ WORKDIR /app
 
 # Installer les dépendances système
 RUN apt-get update && apt-get install -y \
+    cron \
     gcc \
     postgresql-client \
     libpq-dev \
@@ -24,8 +25,16 @@ COPY ./ .
 # Créer les répertoires de logs
 RUN mkdir -p logs scripts
 
+# Configurer le cron job d'expiration des accès (toutes les 6 heures)
+RUN touch /app/logs/cron.log \
+    && echo 'SHELL=/bin/sh' > /etc/cron.d/expire-access \
+    && echo 'PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin' >> /etc/cron.d/expire-access \
+    && echo '0 */6 * * * root . /etc/environment; cd /app && /usr/local/bin/python3 /app/scripts/expire_access.py >> /app/logs/cron.log 2>&1' >> /etc/cron.d/expire-access \
+    && chmod 0644 /etc/cron.d/expire-access \
+    && crontab /etc/cron.d/expire-access
+
 # Exposer le port
 EXPOSE 5000
 
-# Lancer l'application
-CMD ["python3", "app.py"]
+# Lancer cron + application Flask
+CMD ["sh", "-c", "printenv > /etc/environment && cron && python3 app.py"]

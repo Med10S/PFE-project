@@ -22,8 +22,6 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import inspect, text, or_
 from ACL_work.tailscale_acl_api import (
     approve_access_request,
-    revoke_access_request,
-    cleanup_expired_requests
 )
 app = Flask(__name__)
 app.secret_key = os.getenv('SECRET_KEY') 
