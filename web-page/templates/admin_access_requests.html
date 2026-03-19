@@ -55,7 +55,7 @@
 
 <!-- Pending Requests -->
 <div class="card animate-fade-in">
-    <div class="card-header" style="background: linear-gradient(135deg, var(--warning) 0%, #d4a574 100%); color: white;">
+    <div class="card-header gradient-warning">
         <h5 class="card-title">
             <i class="bi bi-hourglass-split"></i>
             Demandes En Attente
@@ -107,7 +107,7 @@
 
 <!-- Approved Requests -->
 <div class="card animate-fade-in">
-    <div class="card-header" style="background: linear-gradient(135deg, var(--success) 0%, #1f7d3c 100%); color: white;">
+    <div class="card-header gradient-success">
         <h5 class="card-title">
             <i class="bi bi-check-circle-fill"></i>
             Demandes Approuvées
@@ -160,7 +160,7 @@
 
 <!-- Denied Requests -->
 <div class="card animate-fade-in">
-    <div class="card-header" style="background: linear-gradient(135deg, var(--danger) 0%, #8b4545 100%); color: white;">
+    <div class="card-header gradient-danger">
         <h5 class="card-title">
             <i class="bi bi-x-circle-fill"></i>
             Demandes Rejetées
@@ -204,11 +204,11 @@
 </div>
 
 <!-- Deny Modal -->
-<div class="modal fade" id="denyRequestModal" tabindex="-1">
+<div class="modal fade" id="denyRequestModal" tabindex="-1" aria-labelledby="denyRequestModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">
+                <h5 class="modal-title" id="denyRequestModalLabel">
                     <i class="bi bi-x-circle-fill text-danger"></i>
                     Rejeter la Demande
                 </h5>

@@ -6,7 +6,7 @@
 <!-- Page Header -->
 <div class="page-header">
     <div class="page-title">
-        <div class="page-title-icon" style="background: var(--gradient-success);">
+        <div class="page-title-icon">
             <i class="bi bi-person-circle"></i>
         </div>
         <div>
@@ -70,7 +70,7 @@
                     <div class="col-md-6 mb-3">
                         <label class="form-label text-muted">Statut du compte</label>
                         <div>
-                            <span class="badge badge-success" style="font-size: 1rem; padding: 10px 16px;">
+                            <span class="badge badge-success">
                                 <i class="bi bi-check-circle-fill"></i>
                                 Actif
                             </span>
@@ -92,7 +92,7 @@
                 {% if user.groups %}
                 <div class="permissions-grid">
                     {% for group in user.groups %}
-                    <div class="permission-tag" style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.1) 0%, rgba(52, 211, 153, 0.1) 100%); border-color: rgba(16, 185, 129, 0.2); color: var(--success);">
+                    <div class="permission-tag">
                         <i class="bi bi-{{ 'shield-fill' if group == 'Admins' else 'people-fill' }}"></i>
                         {{ group }}
                     </div>
@@ -140,7 +140,7 @@
     <div class="col-lg-4">
         <!-- Session Info -->
         <div class="card animate-fade-in">
-            <div class="card-header" style="background: var(--gradient-info); color: white;">
+            <div class="card-header gradient-info">
                 <h5 class="card-title">
                     <i class="bi bi-clock-history"></i>
                     Session
@@ -157,7 +157,7 @@
                 <div class="mb-3">
                     <label class="form-label text-muted">Authentification</label>
                     <div>
-                        <span class="badge badge-primary" style="font-size: 0.9rem; padding: 8px 12px;">
+                        <span class="badge badge-primary">
                             <i class="bi bi-shield-lock"></i>
                             Authentik OAuth2
                         </span>
@@ -181,7 +181,7 @@
             <div class="card-body">
                 <div class="info-box mb-3">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="info-box-icon bg-success text-white" style="width: 40px; height: 40px; margin-bottom: 0;">
+                        <div class="info-box-icon bg-success text-white">
                             <i class="bi bi-check-lg"></i>
                         </div>
                         <div>
@@ -192,7 +192,7 @@
                 </div>
                 <div class="info-box mb-0">
                     <div class="d-flex align-items-center gap-3">
-                        <div class="info-box-icon bg-primary text-white" style="width: 40px; height: 40px; margin-bottom: 0;">
+                        <div class="info-box-icon bg-primary text-white">
                             <i class="bi bi-key"></i>
                         </div>
                         <div>

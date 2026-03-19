@@ -3,17 +3,26 @@ FROM ubuntu:24.04
 ARG USERNAME=pfe_user
 ENV SSH_USER=${USERNAME}
 
+ARG CACHEBUST=1
 RUN apt-get update \
-	&& apt-get install -y --no-install-recommends openssh-server \
-	&& apt-get install -y --no-install-recommends curl \
+	&& apt-get install -y --no-install-recommends \
+		openssh-server \
+		curl \
+		ca-certificates \
+		gnupg \
+	&& curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+		| tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
+	&& curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+		| tee /etc/apt/sources.list.d/tailscale.list \
+	&& apt-get update \
+	&& apt-get install -y --no-install-recommends tailscale \
 	&& rm -rf /var/lib/apt/lists/* \
 	&& mkdir -p /var/run/sshd \
 	&& useradd -m -s /bin/bash ${USERNAME} \
 	&& sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config \
 	&& sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
 	&& sed -i 's/^#\?UsePAM.*/UsePAM yes/' /etc/ssh/sshd_config \
-	&& echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config \
-	&& curl -fsSL https://tailscale.com/install.sh | sh
+	&& echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh

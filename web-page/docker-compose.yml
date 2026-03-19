@@ -18,6 +18,7 @@ services:
       retries: 5
     networks:
       - iam_network
+    restart: unless-stopped
 
   # Flask Web Application
   web:
@@ -39,6 +40,8 @@ services:
       - iam_network
       - authentik_network
     command: python3 app.py
+    restart: unless-stopped
+
 volumes:
   postgres_data:
 

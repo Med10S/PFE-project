@@ -2,6 +2,10 @@
 Application Web Flask avec authentification Authentik IAM et tableau de bord
 """
 
+from http import server
+
+from xmlrpc import server
+
 from flask import Flask, render_template, request, redirect, url_for, session, flash, jsonify
 from auth import (
     get_current_user, require_login, require_permission, in_groupe,
@@ -11,17 +15,21 @@ from models import db, AccessRequest
 import os
 import re
 import requests
+from datetime import datetime
 from urllib.parse import urlparse
 from authlib.integrations.flask_client import OAuth
 from werkzeug.middleware.proxy_fix import ProxyFix
+from sqlalchemy import inspect, text, or_
+from ACL_work.tailscale_acl_api import (
+    approve_access_request,
+    revoke_access_request,
+    cleanup_expired_requests
+)
 app = Flask(__name__)
-app.secret_key = 'EVXFENKv6NESy84NkroEE48xONAyDcEa0UZ4jFkqIp42owAijeA93rsWDEjA8aVvzSqm9zNPvuEkhjSrGlac2OliaZw9R5AiELtc0PQC0jHnBFMFDHHQ0Hikx0vrQiOv'  # À changer en production
+app.secret_key = os.getenv('SECRET_KEY') 
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
-# Configuration de la base de données
-# DATABASE_URL est automatiquement générée depuis les variables Docker
-# En Docker: postgresql://user:password@postgres:5432/db_name
-# En local: postgresql://user:password@localhost:5432/db_name
+
 db_user = os.getenv('POSTGRES_USER',)
 db_password = os.getenv('POSTGRES_PASSWORD',)
 db_host = os.getenv('POSTGRES_HOST', )  
@@ -33,6 +41,61 @@ DATABASE_URL = f'postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_na
 app.config['SQLALCHEMY_DATABASE_URI'] = DATABASE_URL
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
+
+_schema_checked = False
+
+
+def ensure_access_requests_schema():
+    """Ajoute les colonnes manquantes sur access_requests si le schéma est ancien."""
+    engine = db.engine
+    inspector = inspect(engine)
+
+    if not inspector.has_table('access_requests'):
+        db.create_all()
+        return
+
+    existing_columns = {col['name'] for col in inspector.get_columns('access_requests')}
+    required_columns = {
+        'user_email': 'VARCHAR(255)',
+        'user_name': 'VARCHAR(255)',
+        'server_id': 'VARCHAR(255)',
+        'server_name': 'VARCHAR(255)',
+        'tailscale_tag': 'VARCHAR(255)',
+        'status': "VARCHAR(50) DEFAULT 'pending'",
+        'requested_at': 'TIMESTAMP WITHOUT TIME ZONE DEFAULT CURRENT_TIMESTAMP',
+        'approved_at': 'TIMESTAMP WITHOUT TIME ZONE',
+        'approved_by': 'VARCHAR(255)',
+        'expires_at': 'TIMESTAMP WITHOUT TIME ZONE',
+        'reason': 'TEXT',
+        'admin_notes': 'TEXT',
+        'acl_applied': 'BOOLEAN DEFAULT FALSE',
+    }
+
+    missing_columns = [
+        (column_name, column_def)
+        for column_name, column_def in required_columns.items()
+        if column_name not in existing_columns
+    ]
+
+    if not missing_columns:
+        return
+
+    with engine.begin() as conn:
+        for column_name, column_def in missing_columns:
+            conn.execute(text(
+                f"ALTER TABLE access_requests ADD COLUMN IF NOT EXISTS {column_name} {column_def}"
+            ))
+
+
+@app.before_request
+def ensure_schema_once():
+    """Vérifie le schéma au premier hit, y compris en mode WSGI (gunicorn/uwsgi)."""
+    global _schema_checked
+    if _schema_checked:
+        return
+
+    ensure_access_requests_schema()
+    _schema_checked = True
 
 # Configuration des sessions
 app.config['SESSION_TYPE'] = 'filesystem'
@@ -144,7 +207,7 @@ def webfinger():
     resource = request.args.get('resource', '').strip()
     requested_rels = request.args.getlist('rel')
 
-    subject = os.getenv('WEBFINGER_SUBJECT', 'acct:mohammed.sbihi@sbihi.tech')
+    subject = os.getenv('WEBFINGER_SUBJECT')
     issuer_href = os.getenv(
         'WEBFINGER_ISSUER',
         'https://authentik.sbihi.tech/application/o/tailscale/'
@@ -247,17 +310,44 @@ def user_dashboard():
     if not user:
         return redirect(url_for('login'))
 
-    users = get_tailscale_users()
     devices = get_tailscale_devices()
 
-    # Filtrer les devices accessibles basé sur les tags de l'utilisateur
-    accessible_devices, not_accessible_devices = filter_devices_by_user_tags(devices, user.tags)
+    # Récupérer les demandes de l'utilisateur depuis la DB.
+    now = datetime.utcnow()
+    pending_request = AccessRequest.query.filter_by(
+        user_email=user.email,
+        status='pending'
+    ).order_by(AccessRequest.requested_at.desc()).first()
+
+    approved_access_requests = AccessRequest.query.filter(
+        AccessRequest.user_email == user.email,
+        AccessRequest.status == 'approved',
+        or_(AccessRequest.expires_at == None, AccessRequest.expires_at > now)
+    ).order_by(AccessRequest.expires_at.asc()).all()
+
+    approved_server_ids = {req.server_id for req in approved_access_requests}
+
+    # Accès autorisé si tag en commun OU accès ACL approuvé en DB.
+    accessible_devices = []
+    not_accessible_devices = []
+    user_tags_set = set(user.tags)
+    for device in devices:
+        device_tags = set(device.get('tags', []))
+        has_tag_access = bool(device_tags & user_tags_set)
+        has_acl_access = device.get('id') in approved_server_ids
+
+        if has_tag_access or has_acl_access:
+            accessible_devices.append(device)
+        else:
+            not_accessible_devices.append(device)
 
     return render_template('user_dashboard.html',
                          user=user,
-                         users=users,
                          accessible_devices=accessible_devices,
-                         not_accessible_devices=not_accessible_devices)
+                         not_accessible_devices=not_accessible_devices,
+                         pending_request=pending_request,
+                         has_pending_request=bool(pending_request),
+                         approved_access_requests=approved_access_requests)
 
 @app.route('/profile')
 @require_login
@@ -344,8 +434,17 @@ def api_approve_request(request_id):
     if not access_req:
         return jsonify({"error": "Demande non trouvée"}), 404
 
-    # TODO: Ajouter l'utilisateur au groupe Tailscale correspondant
     access_req.approve(user.email)
+    tailscale_tag = access_req.tailscale_tag
+    success, msg = approve_access_request(access_req, "mohammed.sbihi@sbihi.tech", tailscale_tag)
+
+    if success:
+        db.session.commit()  # Important!
+        print(f"✓ Succès: {msg}")
+        
+    else:
+        db.session.rollback()
+        print(f"✗ Erreur: {msg}")
 
     return jsonify({
         "message": "Demande approuvée avec succès",
@@ -422,12 +521,39 @@ def api_request_access():
     if not server_id or not user:
         return jsonify({"error": "Données manquantes"}), 400
 
+    # Bloquer toute nouvelle demande tant qu'une demande est en attente.
+    pending_request = AccessRequest.query.filter_by(
+        user_email=user.email,
+        status='pending'
+    ).order_by(AccessRequest.requested_at.desc()).first()
+    if pending_request:
+        return jsonify({
+            "error": "Vous avez déjà une demande en attente",
+            "pending_request": {
+                "id": pending_request.id,
+                "server_name": pending_request.server_name,
+                "requested_at": pending_request.requested_at.isoformat()
+            }
+        }), 400
+
     # Récupère les informations du serveur
     devices = get_tailscale_devices()
     server = next((d for d in devices if d['id'] == server_id), None)
-
     if not server:
         return jsonify({"error": "Serveur non trouvé"}), 404
+
+    # Empêcher la demande si l'utilisateur a déjà accès (tag ou ACL approuvée active).
+    server_tags = set(server.get('tags', []))
+    has_tag_access = bool(server_tags & set(user.tags))
+    now = datetime.utcnow()
+    has_acl_access = AccessRequest.query.filter(
+        AccessRequest.user_email == user.email,
+        AccessRequest.server_id == server_id,
+        AccessRequest.status == 'approved',
+        or_(AccessRequest.expires_at == None, AccessRequest.expires_at > now)
+    ).first() is not None
+    if has_tag_access or has_acl_access:
+        return jsonify({"error": "Vous avez déjà accès à ce serveur"}), 400
 
     # Vérifier si une demande existe déjà
     existing_request = AccessRequest.query.filter_by(
@@ -438,18 +564,35 @@ def api_request_access():
 
     if existing_request:
         return jsonify({"error": "Une demande est déjà en cours pour ce serveur"}), 400
+    
+    
+    tags = server.get('tags', [])
+    matching_machine_tags = [
+        tag for tag in tags
+        if tag.startswith("tag:machine-") and len(tag) > len("tag:machine-")
+    ]
+
+    if len(matching_machine_tags) > 1:
+        return jsonify({
+            "error": "Plusieurs tags machine détectés pour ce serveur",
+            "tags": matching_machine_tags
+        }), 400
+
+    tailscale_tag = matching_machine_tags[0] if matching_machine_tags else None
 
     # Créer une nouvelle demande
     access_request = AccessRequest(
         user_email=user.email,
         user_name=user.username,
         server_id=server_id,
-        server_name=server.get('name', server_id)
+        server_name=server.get('name', server_id),
+        tailscale_tag=tailscale_tag
     )
 
     try:
         db.session.add(access_request)
         db.session.commit()
+
         return jsonify({
             "message": "Demande d'accès enregistrée avec succès",
             "user": user.username,

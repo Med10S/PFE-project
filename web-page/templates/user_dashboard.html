@@ -6,7 +6,7 @@
 <!-- Page Header -->
 <div class="page-header">
     <div class="page-title">
-        <div class="page-title-icon" style="background: var(--gradient-info);">
+        <div class="page-title-icon">
             <i class="bi bi-eye"></i>
         </div>
         <div>
@@ -51,7 +51,78 @@
             <p>Permissions</p>
         </div>
     </div>
+    <div class="stat-card animate-fade-in" style="animation-delay: 0.3s">
+        <div class="stat-icon {{ 'warning' if has_pending_request else 'success' }}">
+            <i class="bi bi-hourglass-split"></i>
+        </div>
+        <div class="stat-content">
+            <h3>{{ approved_access_requests|length }}</h3>
+            <p>Accès Temporaires Actifs</p>
+        </div>
+    </div>
 </div>
+
+{% if has_pending_request %}
+<div class="alert alert-warning">
+    <i class="bi bi-hourglass-split"></i>
+    <div>
+        <strong>Demande en attente :</strong>
+        vous avez déjà une demande en cours pour <strong>{{ pending_request.server_name }}</strong>
+        ({{ pending_request.requested_at.strftime('%d/%m/%Y %H:%M') }}).
+        Le bouton "Demander Accès" est temporairement bloqué.
+    </div>
+</div>
+{% endif %}
+
+{% if approved_access_requests|length > 0 %}
+<div class="card animate-fade-in">
+    <div class="card-header gradient-success">
+        <h5 class="card-title">
+            <i class="bi bi-clock-history"></i>
+            Mes Accès Approuvés (Timer)
+        </h5>
+        <span class="badge badge-light">{{ approved_access_requests|length }} accès</span>
+    </div>
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th><i class="bi bi-server"></i> Serveur</th>
+                        <th><i class="bi bi-tag"></i> Tag ACL</th>
+                        <th><i class="bi bi-calendar-check"></i> Approuvé le</th>
+                        <th><i class="bi bi-stopwatch"></i> Temps restant</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for req in approved_access_requests %}
+                    <tr>
+                        <td>{{ req.server_name }}</td>
+                        <td>{{ req.tailscale_tag or '-' }}</td>
+                        <td>
+                            {% if req.approved_at %}
+                            <small>{{ req.approved_at.strftime('%d/%m/%Y %H:%M') }}</small>
+                            {% else %}
+                            <small>-</small>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if req.expires_at %}
+                            <span class="badge badge-warning countdown-timer" data-expires-at="{{ req.expires_at.strftime('%Y-%m-%dT%H:%M:%SZ') }}">
+                                Calcul...
+                            </span>
+                            {% else %}
+                            <span class="badge badge-success">Sans expiration</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 
 <!-- Permissions Card -->
 <div class="card animate-fade-in">
@@ -83,7 +154,7 @@
 <!-- Accessible Servers -->
 {% if accessible_devices|length > 0 %}
 <div class="card animate-fade-in">
-    <div class="card-header" style="background: linear-gradient(135deg, var(--success) 0%, #1f7d3c 100%); color: white;">
+    <div class="card-header gradient-success">
         <h5 class="card-title">
             <i class="bi bi-check-circle-fill"></i>
             Serveurs Accessibles
@@ -141,7 +212,7 @@
 <!-- Restricted Servers -->
 {% if not_accessible_devices|length > 0 %}
 <div class="card animate-fade-in">
-    <div class="card-header" style="background: linear-gradient(135deg, var(--warning) 0%, #d4a574 100%); color: white;">
+    <div class="card-header gradient-warning">
         <h5 class="card-title">
             <i class="bi bi-lock-fill"></i>
             Serveurs Restreints
@@ -184,9 +255,13 @@
                             </span>
                         </td>
                         <td>
-                            <button class="btn btn-outline-warning btn-sm" onclick="requestAccess('{{ device.id }}', '{{ device.name }}')">
+                            <button
+                                class="btn btn-outline-warning btn-sm"
+                                onclick="requestAccess('{{ device.id }}', '{{ device.name }}')"
+                                {% if has_pending_request %}disabled title="Vous avez déjà une demande en attente"{% endif %}
+                            >
                                 <i class="bi bi-hand-thumbs-up"></i>
-                                Demander Accès
+                                {% if has_pending_request %}Demande Bloquée{% else %}Demander Accès{% endif %}
                             </button>
                         </td>
                     </tr>
@@ -252,6 +327,39 @@
 {% block scripts %}
 <script>
 const allDevices = {{ (accessible_devices + not_accessible_devices)|tojson }};
+const hasPendingRequest = {{ has_pending_request|tojson }};
+
+function formatRemaining(msRemaining) {
+    if (msRemaining <= 0) {
+        return 'Expiré';
+    }
+
+    const totalSeconds = Math.floor(msRemaining / 1000);
+    const days = Math.floor(totalSeconds / 86400);
+    const hours = Math.floor((totalSeconds % 86400) / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+
+    if (days > 0) {
+        return `${days}j ${hours}h ${minutes}m`;
+    }
+    return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+function updateTimers() {
+    const now = Date.now();
+    const timers = document.querySelectorAll('.countdown-timer');
+    timers.forEach((element) => {
+        const expiresAt = element.dataset.expiresAt;
+        const expiresTs = new Date(expiresAt).getTime();
+        const remaining = expiresTs - now;
+        element.textContent = formatRemaining(remaining);
+        element.className = remaining > 0 ? 'badge badge-warning countdown-timer' : 'badge badge-danger countdown-timer';
+    });
+}
+
+updateTimers();
+setInterval(updateTimers, 1000);
 
 function viewDeviceDetails(deviceId) {
     const device = allDevices.find(d => d.id === deviceId);
@@ -283,6 +391,11 @@ function viewDeviceDetails(deviceId) {
 }
 
 function requestAccess(deviceId, deviceName) {
+    if (hasPendingRequest) {
+        showNotification('Vous avez déjà une demande en attente. Nouvelle demande bloquée.', 'warning');
+        return;
+    }
+
     if (confirm(`Êtes-vous sûr de vouloir demander l'accès à "${deviceName}"?`)) {
         fetch('/api/request-access', {
             method: 'POST',

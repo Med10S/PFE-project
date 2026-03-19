@@ -1,313 +1,181 @@
-# Application Web IAM avec Authentik et Dashboard
+# IAM Web App + Authentik + Tailscale ACL
 
-Cette application Flask fournit un système d'authentification IAM (Identity and Access Management) intégré avec **Authentik** comme provider OAuth2/OIDC, avec des tableaux de bord différenciés selon les rôles et permissions des utilisateurs.
+Application Flask pour gérer l'accès aux machines Tailscale avec:
+- Authentification OAuth2/OIDC via Authentik
+- Gestion des demandes d'acces en base (PostgreSQL)
+- Workflow d'approbation/revocation ACL via `ACL_work`
+- Expiration automatique des acces approuves (cron)
 
-## 🚀 Fonctionnalités
+## Fonctionnalites principales
 
-### 🔐 Authentification Authentik IAM
-- Intégration OAuth2/OIDC avec Authentik
-- Authentification sécurisée avec PKCE
-- Gestion des sessions avec refresh tokens
-- Single Sign-On (SSO) ready
+### 1) Authentification et autorisation
+- Login via Authentik (`/login`, `/auth/callback`, `/logout`)
+- Session utilisateur stockee cote Flask
+- Roles/groupes valides par decorators (`require_login`, `require_permission`, `in_groupe`)
 
-### 👥 Gestion des Rôles et Permissions
-- **Groupe Admins** (`Admins`) avec permissions :
-  - `users:read` - Lecture des utilisateurs
-  - `users:update` - Modification des utilisateurs  
-  - `servers:manage` - Gestion des serveurs
-  
-- **Groupe Utilisateurs** (`read_users`) avec permission :
-  - `users:read` - Lecture seule des utilisateurs
+### 2) Logique d'acces machine (nouvelle logique)
+Un utilisateur peut acceder a une machine si au moins une condition est vraie:
+- Il partage un tag avec la machine (tag utilisateur vs tag device)
+- Il possede une demande `approved` active en base pour cette machine (ACL temporaire)
 
-### 📊 Tableaux de Bord
-- **Dashboard Administrateur** : Gestion complète des utilisateurs et serveurs
-- **Dashboard Utilisateur** : Consultation en lecture seule
-- **Profil Utilisateur** : Informations personnelles et gestion de session
+Cette logique est appliquee dans le dashboard utilisateur.
 
-## 🛠️ Installation Rapide
+### 3) Demandes d'acces (DB)
+Table `access_requests` (modele `AccessRequest`):
+- `pending`, `approved`, `denied`, `expired`
+- `tailscale_tag`, `approved_by`, `approved_at`, `expires_at`, `acl_applied`
 
-### Prérequis
-- Docker et Docker Compose
-- Python 3.8+
-- pip
+Flux:
+- User -> `POST /api/request-access`
+- Admin -> `POST /api/access-request/<id>/approve` ou `/deny`
+- Tache maintenance -> expiration/revocation
 
-### 1. Configuration Automatique
+### 4) Blocage "pending" cote API + UI
+Si l'utilisateur a deja une demande `pending`:
+- API refuse une nouvelle demande (`400`)
+- Bouton "Demander Acces" desactive dans le dashboard utilisateur
 
-**Windows :**
-```powershell
-# Exécuter le script de configuration
-.\setup_authentik.ps1
+### 5) Timer des acces approuves
+Le dashboard utilisateur affiche les demandes `approved` actives avec:
+- machine
+- tag ACL
+- date d'approbation
+- temps restant (compteur live)
+
+## Groupes et permissions
+
+### Groupes utilises
+- `authentik Admins`: acces administration des demandes
+- `dev`: acces dashboard utilisateur
+
+### Permissions OAuth (claims)
+- `users:read`
+- `users:update`
+- `servers:manage`
+
+## ACL_work (integration Tailscale)
+
+Dossier: `ACL_work/`
+- `tailscale_acl_api.py`: orchestration workflow ACL <-> DB
+- `tailscale_acl_manager.py`: lecture/modification ACL Tailscale via API
+- `tests/examples_integration.py`: exemple de bout en bout
+
+Fonctions cle:
+- `approve_access_request(...)`
+- `revoke_access_request(...)`
+- `cleanup_expired_requests(...)`
+
+## Cron job (expiration des droits)
+
+Script: `scripts/expire_access.py`
+
+Exemple cron (toutes les 6h):
+
+```cron
+0 */6 * * * cd /chemin/vers/web-page && docker exec iam_web python3 scripts/expire_access.py >> /chemin/vers/web-page/logs/cron.log 2>&1
 ```
 
-**Linux/macOS :**
-```bash
-# Rendre le script exécutable et l'exécuter
-chmod +x setup_authentik.sh
-./setup_authentik.sh
-```
+## Installation automatique (nouveau script)
 
-### 2. Installation Manuelle
+Script ajoute: `scripts/install_app.sh`
 
-1. **Cloner et installer les dépendances**
-   ```bash
-   # Installation des dépendances Python
-   pip install -r requirements.txt
-   ```
+Ce script:
+- verifie les prerequis (`python3`, `docker`)
+- verifie les variables obligatoires de `.env`
+- si une variable est absente/vide, il demande la saisie interactive
+- synchronise les aliases DB (`DB_*`) pour les scripts de maintenance
+- installe les dependances Python dans `.venv`
+- demarre `docker compose`
+- initialise les tables SQLAlchemy
+- propose d'ajouter automatiquement le cron job
 
-2. **Configurer Authentik**
-   ```bash
-   # Générer les secrets (Linux/macOS)
-   echo "PG_PASS=$(openssl rand -base64 36 | tr -d '\n')" > authentik.env
-   echo "AUTHENTIK_SECRET_KEY=$(openssl rand -base64 60 | tr -d '\n')" >> authentik.env
-   
-   # Démarrer Authentik
-   docker-compose up -d
-   ```
-
-3. **Configuration initiale Authentik**
-   - Ouvrir http://localhost:9090
-   - Compléter l'installation initiale (créer le compte `akadmin`)
-
-## ⚙️ Configuration Détaillée
-
-### Configuration OAuth2 dans Authentik
-
-1. **Accéder à l'interface Admin Authentik** : http://localhost:9090
-2. **Créer un Provider OAuth2** :
-   - Aller à `Applications > Providers > Create`
-   - Type : `OAuth2/OpenID Provider`
-   - Name : `Flask IAM Dashboard`
-   - Client type : `Confidential`
-   - Client ID : `flask-iam-dashboard`
-   - Redirect URIs : `http://localhost:5000/auth/callback`
-   - Scopes : `openid profile email groups offline_access`
-
-3. **Créer l'Application** :
-   - Aller à `Applications > Applications > Create`
-   - Name : `Flask IAM Dashboard`
-   - Slug : `flask-iam-dashboard`
-   - Provider : Sélectionner le provider créé précédemment
-
-4. **Récupérer les credentials** :
-   - Noter le `Client ID` et `Client Secret`
-   - Mettre à jour `auth.py` avec ces valeurs
-
-### Configuration des Groupes et Permissions
-
-1. **Créer les Groupes** :
-   ```
-   Directory > Groups > Create:
-   - Nom: "Admins"
-   - Nom: "read_users"
-   ```
-
-2. **Créer des Utilisateurs de Test** :
-   ```
-   Directory > Users > Create:
-   - admin@example.com (groupe: Admins)
-   - user@example.com (groupe: read_users)
-   ```
-
-3. **Assigner les Utilisateurs aux Groupes** :
-   - Éditer chaque utilisateur
-   - Ajouter aux groupes appropriés
-
-### Mise à jour de la Configuration App
-
-Modifier `auth.py` ligne 15-17 :
-```python
-OAUTH_CONFIG = {
-    'client_id': 'votre_client_id_reel',
-    'client_secret': 'votre_client_secret_reel',
-    # ... reste de la config
-}
-```
-
-## 🚀 Lancement de l'Application
+### Lancer l'installation
 
 ```bash
-# Démarrer l'application Flask
-python app.py
+cd /home/mohammedsbihi/PFE/web-page
+./scripts/install_app.sh
 ```
 
-Accéder à l'application : http://localhost:5000
+## Variables d'environnement obligatoires
 
-## 📁 Structure du Projet
+Le script valide ces variables:
+- `AUTHENTIK_CLIENT_ID`
+- `AUTHENTIK_CLIENT_SECRET`
+- `AUTHENTIK_BASE_URL`
+- `AUTHENTIK_REDIRECT_URI`
+- `AUTHENTIK_AUTHORIZATION_URL`
+- `AUTHENTIK_TOKEN_URL`
+- `AUTHENTIK_USERINFO_URL`
+- `POSTGRES_USER`
+- `POSTGRES_PASSWORD`
+- `POSTGRES_HOST`
+- `POSTGRES_PORT`
+- `POSTGRES_DB`
+- `TAILSCALE_API_TOKEN`
+- `TAILSCALE_TAILNET`
+- `SECRET_KEY`
 
-```
-web-page/
-├── app.py                     # Application Flask principale  
-├── auth.py                    # Système d'authentification Authentik OAuth2
-├── requirements.txt           # Dépendances Python
-├── docker-compose.yml         # Configuration Authentik
-├── authentik.env             # Variables d'environnement Authentik
-├── setup_authentik.sh        # Script de configuration (Linux/macOS)
-├── setup_authentik.ps1       # Script de configuration (Windows)
-├── templates/           
-│   ├── base.html             # Template de base
-│   ├── login_authentik.html  # Page de connexion Authentik
-│   ├── admin_dashboard.html  # Dashboard administrateur
-│   ├── user_dashboard.html   # Dashboard utilisateur
-│   └── profile.html          # Profil utilisateur
-└── static/
-    └── style.css             # Styles CSS personnalisés
-```
+## Endpoints utiles
 
-## 🔗 API Endpoints
+### UI
+- `GET /admin/dashboard`
+- `GET /user/dashboard`
+- `GET /admin/access-requests`
 
-### Authentification
-- `GET /login` - Page de connexion (redirige vers Authentik)
-- `GET /auth/callback` - Callback OAuth2 Authentik
-- `GET /logout` - Déconnexion
-- `GET /profile` - Profil utilisateur
+### API
+- `POST /api/request-access`
+- `POST /api/access-request/<id>/approve`
+- `POST /api/access-request/<id>/deny`
+- `GET /api/access-requests`
+- `POST /api/refresh-token`
 
-### Dashboards  
-- `GET /` - Redirection vers le dashboard approprié
-- `GET /admin/dashboard` - Dashboard administrateur (rôle: Admins)
-- `GET /user/dashboard` - Dashboard utilisateur (rôle: read_users)
+## Roadmap de mise en place (recommandee)
 
-### API REST
-- `GET /api/users` - Liste des utilisateurs (permission: users:read)
-- `PUT /api/users/<id>` - Modifier un utilisateur (permission: users:update)
-- `GET /api/servers` - Liste des serveurs (permission: servers:manage)
-- `POST /api/servers/<id>/restart` - Redémarrer un serveur (permission: servers:manage)
-- `POST /api/refresh-token` - Rafraîchir le token d'accès
+### Phase 1 - Infrastructure
+1. Configurer `.env` (Authentik, DB, Tailscale)
+2. Lancer `./scripts/install_app.sh`
+3. Verifier les conteneurs `iam_db` et `iam_web`
 
-## 🔐 Sécurité et Permissions
+### Phase 2 - Authentik
+1. Creer provider OAuth2/OIDC
+2. Configurer redirect URI
+3. Verifier les claims (`groups`, `permissions`, `email`)
+4. Mapper les utilisateurs dans les groupes attendus (`authentik Admins`, `dev`)
 
-### Par Rôle
+### Phase 3 - ACL et workflow
+1. Verifier `TAILSCALE_API_TOKEN` et `TAILSCALE_TAILNET`
+2. Tester approbation/revocation via page admin
+3. Verifier mise a jour de `access_requests` et application ACL
 
-#### Administrateurs (Admins)
-✅ Consulter tous les utilisateurs  
-✅ Modifier les utilisateurs  
-✅ Gérer les serveurs  
-✅ Redémarrer les serveurs  
-✅ Accès complet au dashboard  
-✅ Profil utilisateur complet
+### Phase 4 - Maintenance
+1. Activer cron d'expiration
+2. Verifier les logs d'expiration
+3. Valider la coherence des statuts (`approved` -> `expired`)
 
-#### Utilisateurs (read_users)  
-✅ Consulter la liste des utilisateurs  
-✅ Voir les détails utilisateur  
-✅ Statistiques générales  
-✅ Profil utilisateur en lecture seule  
-❌ Modification des données  
-❌ Gestion des serveurs
+### Phase 5 - Production hardening
+1. Supprimer tous les secrets hardcodes
+2. Activer HTTPS bout-en-bout
+3. Ajouter Flask-Migrate/Alembic pour les migrations DB
+4. Ajouter monitoring, alerting, backup DB
+5. Mettre des tests automatiques (API + UI)
 
-### Fonctionnalités de Sécurité
-- Authentification OAuth2/OIDC avec PKCE
-- Tokens JWT sécurisés  
-- Refresh tokens pour sessions longues
-- Vérification des permissions pour chaque action
-- Protection CSRF avec state parameter
-- Sessions Flask sécurisées
+## Commandes utiles
 
-## 🐳 Docker et Authentik
-
-### Services Authentik
-- **PostgreSQL** : Base de données Authentik
-- **Redis** : Cache et sessions
-- **Authentik Server** : Interface web et API
-- **Authentik Worker** : Tâches en arrière-plan
-
-### Ports par Défaut
-- **Authentik** : http://localhost:9090, https://localhost:9443
-- **Flask App** : http://localhost:5000
-
-### Commandes Docker Utiles
 ```bash
-# Voir les logs Authentik
-docker-compose logs -f server
+# Logs application
+cd /home/mohammedsbihi/PFE/web-page
+docker logs -f iam_web
 
-# Redémarrer Authentik
-docker-compose restart
+# Etat des services
+cd /home/mohammedsbihi/PFE/web-page
+docker compose ps
 
-# Arrêter Authentik  
-docker-compose down
-
-# Supprimer complètement (attention: perte de données!)
-docker-compose down -v
+# Lancer le script d'expiration manuellement
+cd /home/mohammedsbihi/PFE/web-page
+docker exec iam_web python3 scripts/expire_access.py
 ```
 
-## 🔧 Développement
-
-### Ajouter de Nouveaux Utilisateurs
-Les utilisateurs sont gérés dans Authentik. Créer via l'interface web ou l'API Authentik.
-
-### Ajouter de Nouvelles Permissions
-1. Définir la permission dans le modèle utilisateur (auth.py)
-2. Créer les décorateurs appropriés  
-3. Implémenter la logique métier
-4. Configurer les groupes dans Authentik avec les claims appropriés
-
-### Personnaliser l'Interface
-- Modifier les templates dans `templates/`
-- Adapter les styles dans `static/style.css`
-- Ajouter des routes dans `app.py`
-
-## 🆘 Dépannage
-
-### Problèmes Communs
-
-**1. Authentik non accessible**
-```bash
-# Vérifier que les services sont démarrés
-docker-compose ps
-
-# Vérifier les logs
-docker-compose logs server
-```
-
-**2. Erreur OAuth2 "Invalid redirect URI"**
-- Vérifier que l'URI de redirection dans Authentik correspond exactement
-- URL: `http://localhost:5000/auth/callback`
-
-**3. Permissions non synchronisées**  
-- Vérifier que l'utilisateur est bien dans le bon groupe Authentik
-- Vérifier que le scope `groups` est inclus dans la requête OAuth
-
-**4. Token expiré**
-- Utiliser le bouton "Rafraîchir Token" dans le profil
-- Ou se reconnecter
-
-### Logs de Debug
-```bash
-# Logs Flask (dans le terminal où vous avez lancé python app.py)
-# Les erreurs OAuth apparaissent ici
-
-# Logs Authentik
-docker-compose logs -f server worker
-```
-
-## 🏢 Production
-
-⚠️ **Important** : Cette configuration est pour le développement. Pour la production :
-
-### Sécurité
-1. **Changer toutes les clés secrètes** dans `authentik.env` et `app.py`  
-2. **Utiliser HTTPS** pour Authentik et l'application Flask
-3. **Configurer un vrai serveur PostgreSQL** (pas le container Docker)
-4. **Utiliser un reverse proxy** (nginx, Traefik) 
-5. **Configurer des certificats SSL/TLS** valides
-6. **Utiliser un serveur WSGI** (Gunicorn, uWSGI) pour Flask
-7. **Mettre en place une surveillance** et des backups
-
-### Configuration Production Authentik
-```bash
-# Variables d'environnement production
-AUTHENTIK_SECRET_KEY=<secret-vraiment-sur-64-caracteres>
-AUTHENTIK_ERROR_REPORTING__ENABLED=true
-AUTHENTIK_EMAIL__HOST=smtp.votre-domaine.com
-AUTHENTIK_EMAIL__PORT=587
-AUTHENTIK_EMAIL__USERNAME=authentik@votre-domaine.com
-AUTHENTIK_EMAIL__PASSWORD=<mot-de-passe-email>
-AUTHENTIK_EMAIL__USE_TLS=true
-```
-
-## 📄 Licence
-
-Projet éducatif - Libre d'utilisation et de modification.
-
-## 🤝 Support
-
-Pour des questions sur Authentik : https://docs.goauthentik.io/  
-Pour ce projet : Voir les issues GitHub ou créer une nouvelle issue.
+## Notes importantes
+- `db.create_all()` ne remplace pas un vrai systeme de migration. Pour la prod, utiliser Alembic.
+- Le workflow ACL depend de la disponibilite de l'API Tailscale et de la validite des tags machines.
+- En cas de demande `pending`, la creation d'une nouvelle demande est volontairement bloquee.

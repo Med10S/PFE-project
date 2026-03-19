@@ -1,3 +1,6 @@
 /TODO
-Proxy/data/logs/fallback_error.log
-Proxy/data/logs/proxy-host-*
+Proxy/data/logs/*
+web-page/ACL_work/tests/.venv/*
+web-page/__pycache__/*
+*/__pycache__/*
+web-page/.env*

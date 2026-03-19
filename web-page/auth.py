@@ -126,12 +126,7 @@ def get_user_info(access_token):
         
         # Récupération des attributs envoyés par Authentik
         permissions = []
-        permissions = user_info.get('permissions', [])
-        
-        # On commence avec une permission de base
-        
-       
-
+        permissions = user_info.get('permissions', [])  
         # Supprimer les doublons
         permissions = list(set(permissions))
             
@@ -144,6 +139,8 @@ def get_user_info(access_token):
     except Exception as e:
         print(f"Erreur: {e}")
         return None
+
+        
 def has_permission(permission):
     """Vérifie si l'utilisateur actuel a une permission spécifique"""
     user = get_current_user()

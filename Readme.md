@@ -28,35 +28,44 @@ Le tableau suivant synthétise les différences majeures entre les deux modèles
 | **Souveraineté des données**| Limitée. Les données d'identité et les métadonnées de connexion sont stockées et traitées par un tiers. | Totale. L'organisation contrôle entièrement le stockage physique et logique des données sensibles. |
 | **Support** | Support professionnel garanti par le fournisseur, avec des SLA (Service Level Agreements) définis. | Support communautaire. Le support professionnel est souvent une option payante via des intégrateurs tiers. |
 
-#### 4. La solution retenue : Le duo Authentik (IAM) & HashiCorp Boundary (PAM)
+#### 4. La solution retenue : Authentik (IAM) + Tailscale ACL + moteur JIT Python
 
-Pour répondre aux exigences d'une architecture Zero Trust moderne, le projet s'articulera autour de l'intégration de deux solutions Open Source complémentaires, chacune spécialisée dans son domaine : **Authentik** pour la gestion des identités et des accès (IAM) et **HashiCorp Boundary** pour la gestion des accès à privilèges (PAM).
+Suite aux contraintes du plan gratuit (SSO non couvert), la brique HashiCorp Boundary a été retirée du périmètre. La solution implémentée repose désormais sur :
 
-**1. Comprendre le rôle de chaque brique**
+*   **Authentik** pour l'authentification et la gouvernance des identités (IAM).
+*   **Tailscale ACL** pour l'application réseau des droits d'accès.
+*   **Un moteur JIT développé en Python** pour l'orchestration des demandes, l'approbation, la révocation et l'expiration des accès.
 
-*   **Authentik (L'IAM) est la "Porte d'entrée principale" :**
-    *   **Son rôle :** Répondre à la question : "Es-tu vraiment la personne que tu prétends être ?"
-    *   **Fonctions clés :** Il gère l'annuaire central des utilisateurs, vérifie les mots de passe, impose l'authentification multifacteur (MFA) et évalue le contexte de la connexion (ex: localisation de l'IP, heure de la journée).
-    *   **Sa limite :** Une fois l'identité vérifiée, Authentik n'est pas conçu pour créer des tunnels sécurisés vers des infrastructures comme des serveurs Linux (SSH) ou des bases de données.
+**1. Rôle de chaque composant**
 
-*   **HashiCorp Boundary (Le PAM) est le "Coffre-fort interne" :**
-    *   **Son rôle :** Répondre à la question : "Maintenant que tu es à l'intérieur, à quelles ressources critiques as-tu le droit d'accéder, et pour combien de temps ?"
-    *   **Fonctions clés :** Il gère l'accès *Just-In-Time* (JIT) en ouvrant des connexions réseau éphémères (sessions TCP, SSH, RDP) sans jamais exposer les ports des serveurs cibles sur le réseau. L'accès se fait via un proxy dynamique.
-    *   **Sa limite :** Boundary ne gère pas les identités ni les mots de passe. Il doit s'appuyer sur un système tiers de confiance pour savoir qui est l'utilisateur.
+*   **Authentik (IAM) :**
+    *   Vérifie l'identité utilisateur (SSO, groupes, permissions).
+    *   Fournit les claims nécessaires à l'application web (groupes, email, permissions).
 
-**2. Comment les deux fonctionnent ensemble (Le Flux Zero Trust)**
+*   **Application Flask + DB PostgreSQL :**
+    *   Gère le cycle de vie des demandes d'accès (`pending`, `approved`, `denied`, `expired`).
+    *   Applique les règles métier :
+        *   blocage d'une nouvelle demande si une demande `pending` existe déjà,
+        *   accès autorisé si tag commun user/machine ou ACL approuvée active,
+        *   affichage du temps restant avant expiration des droits.
 
-L'intérêt majeur du projet réside dans l'intégration de ces deux briques via un protocole de fédération standard (OIDC).
+*   **Moteur ACL Python (`ACL_work`) :**
+    *   `approve_access_request(...)` : applique la règle ACL et met à jour la DB.
+    *   `revoke_access_request(...)` : retire la règle ACL et met à jour la DB.
+    *   `cleanup_expired_requests(...)` : supprime les droits expirés et passe les statuts en `expired`.
 
-*   **Délégation d'identité (Fédération) :** Boundary est configuré pour ne jamais gérer de mot de passe. Il délègue systématiquement l'authentification à Authentik, qui agit en tant que **Fournisseur d'Identité** (Identity Provider - IdP).
+*   **Cron de maintenance :**
+    *   Exécute périodiquement le script d'expiration pour garantir le caractère temporaire des accès JIT.
 
-*   **L'expérience utilisateur typique :**
-    1.  Un administrateur souhaite accéder à une base de données de production.
-    2.  Il se connecte à Boundary (via le client CLI ou l'interface web).
-    3.  Boundary le redirige automatiquement vers la page de connexion d'Authentik.
-    4.  L'utilisateur s'authentifie sur Authentik (login, mot de passe, MFA). Les politiques d'accès conditionnel d'Authentik sont évaluées à ce moment.
-    5.  Si l'authentification réussit, Authentik renvoie un "jeton de confiance" (JWT) à Boundary, confirmant l'identité de l'utilisateur et ses appartenances (groupes).
-    6.  Boundary vérifie le jeton, identifie l'utilisateur et ses permissions, puis lui ouvre un tunnel TCP temporaire et sécurisé vers la base de données pour une durée limitée (ex: 1 heure), conformément au principe du moindre privilège.
+**2. Flux Zero Trust retenu**
+
+1.  L'utilisateur s'authentifie via Authentik.
+2.  Il demande un accès à une machine depuis l'UI.
+3.  L'application vérifie en DB l'absence de demande `pending` active.
+4.  Un administrateur approuve la demande.
+5.  Le moteur Python applique la règle ACL Tailscale pour la machine cible.
+6.  La demande devient `approved` avec une date d'expiration.
+7.  Le cron retire automatiquement les droits à expiration et bascule le statut en `expired`.
 
 #### 5. Étapes de développement (Roadmap)
 
@@ -71,24 +80,24 @@ Le plan de réalisation du PoC se décompose comme suit :
     *   Déploiement et configuration de base d'Authentik (utilisateurs, groupes).
     *   Intégration d'une application web avec Authentik (via Outpost) pour valider le SSO.
 
-3.  **Phase 3 - Déploiement du socle PAM (HashiCorp Boundary) :**
-    *   Déploiement de Boundary en mode dev ou via Docker.
-    *   Configuration initiale : création d'une organisation, d'un projet.
-    *   Enregistrement des cibles d'infrastructure (ex: le serveur SSH) dans Boundary.
+3.  **Phase 3 - Déploiement Tailscale + ACL :**
+    *   Configuration du tailnet et des tags machines.
+    *   Validation des API Tailscale (`TAILSCALE_API_TOKEN`, `TAILSCALE_TAILNET`).
+    *   Vérification des règles ACL de base et de leur lisibilité.
 
-4.  **Phase 4 - Fédération d'Identité OIDC (Authentik + Boundary) :**
-    *   Configuration d'Authentik en tant que fournisseur d'identité OIDC.
-    *   Configuration de Boundary pour utiliser Authentik comme méthode d'authentification externe.
-    *   Test du flux de connexion : `boundary login` doit rediriger vers Authentik pour l'authentification.
+4.  **Phase 4 - Implémentation du moteur JIT Python :**
+    *   Développement des fonctions d'approbation/révocation/cleanup dans `ACL_work`.
+    *   Intégration dans les routes Flask d'administration.
+    *   Synchronisation statuts DB <-> ACL réseau.
 
-5.  **Phase 5 - Implémentation des accès à privilèges JIT :**
-    *   Définition des rôles et permissions dans Boundary, en liant les groupes d'utilisateurs provenant d'Authentik.
-    *   Démonstration d'un accès sécurisé à une cible (ex: `boundary connect ssh ...`).
-    *   Validation que la session est bien éphémère et que les identifiants de la cible ne sont jamais exposés à l'utilisateur.
+5.  **Phase 5 - Intégration UI et gouvernance des demandes :**
+    *   Blocage du bouton de demande si une requête `pending` existe.
+    *   Affichage des accès `approved` avec timer côté utilisateur.
+    *   Contrôle métier : accès autorisé par tag commun ou ACL approuvée active.
 
-6.  **Phase 6 - Audit et Reporting :**
-    *   Corrélation des journaux d'audit d'Authentik (qui s'est connecté ?) avec ceux de Boundary (à quoi a-t-il accédé ?).
-    *   Mise en évidence de la traçabilité complète du cycle de vie de l'accès.
+6.  **Phase 6 - Exploitation et audit :**
+    *   Mise en place du cron d'expiration.
+    *   Vérification de la traçabilité complète (qui a demandé, qui a approuvé, quand l'accès a expiré).
 
 #### 6. Fonctionnalités clés à implémenter (Use Cases)
 
@@ -96,6 +105,6 @@ Pour valider la pertinence de la solution, les cas d'usage suivants devront êtr
 
 *   **UC-01 : SSO et MFA pour Application Web :** Un utilisateur accède à un dashboard Grafana. Il est redirigé vers Authentik, doit s'authentifier et valider un second facteur (MFA). Authentik confirme son identité et l'autorise à accéder à Grafana.
 *   **UC-02 : Accès Conditionnel basé sur le Contexte (IAM) :** Le même accès à Grafana est tenté depuis une adresse IP non approuvée. Authentik bloque la tentative d'authentification en amont, même si le mot de passe est correct.
-*   **UC-03 : Accès Sécurisé à un Serveur SSH (PAM) :** Un administrateur système exécute une commande `boundary connect ssh ...`. Il est authentifié via Authentik, et Boundary lui ouvre un tunnel SSH vers le serveur cible sans exposer le port 22 de celui-ci et sans que l'administrateur n'ait besoin de gérer une clé SSH privée.
-*   **UC-04 : Accès à une Base de Données Just-In-Time (JIT) :** Une analyste de données a besoin d'accéder à une base PostgreSQL. Via Boundary, elle obtient une connexion directe à la base de données pour une session de 30 minutes. À la fin du temps imparti, la session est automatiquement terminée par Boundary.
-*   **UC-05 : Audit Inter-Systèmes :** Démontrer qu'il est possible de retrouver dans les journaux d'Authentik la tentative de connexion de l'administrateur (UC-03) et de corréler son horodatage avec la session SSH ouverte dans les journaux de Boundary.
+*   **UC-03 : Demande d'accès JIT à une machine Tailscale :** Un utilisateur non autorisé sur une machine crée une demande d'accès. L'application enregistre la demande en `pending` et empêche les doublons.
+*   **UC-04 : Approbation admin et activation ACL temporaire :** Un administrateur approuve la demande, le moteur Python applique la règle ACL Tailscale, la demande passe en `approved` avec expiration.
+*   **UC-05 : Expiration automatique et audit :** Le cron supprime les droits à échéance, marque la demande en `expired`, et les journaux permettent de tracer tout le cycle de vie de l'accès.

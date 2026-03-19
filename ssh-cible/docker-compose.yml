@@ -6,10 +6,12 @@ services:
       dockerfile: DockerFile
       args:
         USERNAME: ${SSH_USERNAME:-pfe_user}
+    env_file:
+      - .env
     environment:
-      SSH_PASSWORD: ${SSH_PASSWORD:-PFE2026!}
-      TAILSCALE_AUTHKEY: ${TAILSCALE_AUTHKEY:-}
-      TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME:-ssh-cible}
+      SSH_PASSWORD: ${SSH_PASSWORD}
+      TAILSCALE_AUTHKEY: ${TAILSCALE_AUTHKEY_1}
+      TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME_1}
     cap_add:
       - NET_ADMIN
     devices:
@@ -19,9 +21,31 @@ services:
     restart: unless-stopped
     networks:
       - internal-ssh-net # Réseau totalement isolé
+  ssh-cible-2:
+    container_name: ssh-cible-2
+    build:
+      context: .
+      dockerfile: DockerFile
+      args:
+        USERNAME: ${SSH_USERNAME:-pfe_user}
+    env_file:
+      - .env
+    environment:
+      SSH_PASSWORD: ${SSH_PASSWORD}
+      TAILSCALE_AUTHKEY: ${TAILSCALE_AUTHKEY_2}
+      TAILSCALE_HOSTNAME: ${TAILSCALE_HOSTNAME_2}
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
+    volumes:
+      - tailscale-state-2:/var/lib/tailscale
+    restart: unless-stopped
+    networks:
+      - internal-ssh-net # Réseau totalement isolé
 networks:
   internal-ssh-net:
-    internal: false       # Ce réseau n'a pas accès à Internet
-
+    internal: false   
 volumes:
   tailscale-state:
+  tailscale-state-2:
