@@ -3,4 +3,4 @@ Proxy/data/logs/*
 web-page/ACL_work/tests/.venv/*
 web-page/__pycache__/*
 */__pycache__/*
-web-page/.env*
+web-page/.env
