@@ -4,9 +4,7 @@
 
 #### 1. Titre du projet
 
-*   **Variation 1 :** Architecture Zero Trust : Réduction de la surface d’attaque par une gestion d’identités et de privilèges basée sur le modèle IAM/PIM.
-*   **Variation 2 :** Conception et implémentation d’un socle d’authentification Zero Trust pour améliorer la conformité et la sécurité des actifs informationnels.
-*   **Variation 3 :** Intégration d’une solution IAM/PIM Open Source comme pilier d’une stratégie de sécurité Zero Trust : De la théorie au Proof of Concept.
+*  Architecture Zero Trust : Réduction de la surface d’attaque par une gestion d’identités et de privilèges basée sur le modèle IAM/PIM.
 
 #### 2. Alternatives architecturales (Cloud vs On-Premise)
 
