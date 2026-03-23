@@ -21,13 +21,11 @@ services:
     restart: unless-stopped
     networks:
       - internal-ssh-net # Réseau totalement isolé
+
+    
   ssh-cible-2:
     container_name: ssh-cible-2
-    build:
-      context: .
-      dockerfile: DockerFile
-      args:
-        USERNAME: ${SSH_USERNAME:-pfe_user}
+    image: ssh-cible_ssh-cible:latest
     env_file:
       - .env
     environment:
