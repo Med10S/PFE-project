@@ -22,9 +22,11 @@ from werkzeug.middleware.proxy_fix import ProxyFix
 from sqlalchemy import inspect, text, or_
 from ACL_work.tailscale_acl_api import (
     approve_access_request,
+    revoke_access_request,
+    cleanup_expired_requests
 )
 app = Flask(__name__)
-app.secret_key = os.getenv('SECRET_KEY') 
+app.secret_key = 'EVXFENKv6NESy84NkroEE48xONAyDcEa0UZ4jFkqIp42owAijeA93rsWDEjA8aVvzSqm9zNPvuEkhjSrGlac2OliaZw9R5AiELtc0PQC0jHnBFMFDHHQ0Hikx0vrQiOv'
 app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1)
 
 
@@ -205,7 +207,7 @@ def webfinger():
     resource = request.args.get('resource', '').strip()
     requested_rels = request.args.getlist('rel')
 
-    subject = os.getenv('WEBFINGER_SUBJECT')
+    subject = os.getenv('WEBFINGER_SUBJECT', 'acct:mohammed.sbihi@sbihi.tech')
     issuer_href = os.getenv(
         'WEBFINGER_ISSUER',
         'https://authentik.sbihi.tech/application/o/tailscale/'
