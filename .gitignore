@@ -4,3 +4,8 @@ web-page/ACL_work/tests/.venv/*
 web-page/__pycache__/*
 */__pycache__/*
 web-page/.env
+
+/single-node/config/wazuh_indexer_ssl_certs/*.pem
+/single-node/config/wazuh_indexer_ssl_certs/*.key
+
+*.log

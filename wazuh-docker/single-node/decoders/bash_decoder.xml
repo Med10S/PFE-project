@@ -1,0 +1,10 @@
+<decoder name="bash_audit">
+  <program_name>^bash</program_name>
+</decoder>
+
+<decoder name="bash_audit_fields">
+  <parent>bash_audit</parent>
+  <prematch>^\[\S+ from\s+\S+ using \S+\]</prematch>
+  <regex>^\[(\S+)\s+from\s+(\S+)\s+using\s+(\S+)\]\s+(.+)</regex>
+  <order>tailscale_user, srcip, local_user, command</order>
+</decoder>

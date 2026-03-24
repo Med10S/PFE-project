@@ -20,7 +20,8 @@ services:
       - tailscale-state:/var/lib/tailscale
     restart: unless-stopped
     networks:
-      - internal-ssh-net # Réseau totalement isolé
+      - default # Réseau totalement isolé
+
 
     
   ssh-cible-2:
@@ -40,10 +41,12 @@ services:
       - tailscale-state-2:/var/lib/tailscale
     restart: unless-stopped
     networks:
-      - internal-ssh-net # Réseau totalement isolé
+      - default # Réseau totalement isolé
+
 networks:
-  internal-ssh-net:
+  default:
     internal: false   
+
 volumes:
   tailscale-state:
   tailscale-state-2:

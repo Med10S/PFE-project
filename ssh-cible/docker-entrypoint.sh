@@ -43,6 +43,8 @@ rm -f /run/rsyslogd.pid
 /usr/sbin/rsyslogd
 tailscaled &
 
+sed -i 's/<address>.*<\/address>/<address>wazuh.manager<\/address>/' /var/ossec/etc/ossec.conf
+/var/ossec/bin/wazuh-control restart
 
 
 echo "Architecture sécurisée prête. Démarrage de SSH..."
