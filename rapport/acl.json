@@ -1,0 +1,39 @@
+{"groups": {
+	"group:admin": ["mohammed.sbihi@sbihi.tech", "BOUTAYEB.Wissal@sbihi.tech"],
+	"group:dev":   ["test@sbihi.tech"],
+}, "tagOwners": {
+	"tag:prod":      ["group:admin"],
+	"tag:dev":       ["group:dev", "group:admin"],
+	"tag:machine-1": ["group:admin"],
+	"tag:machine-2": ["group:admin"],
+	"tag:machine-3": ["group:admin"],
+}, "grants": [
+	{"src": ["group:dev"], "dst": ["tag:dev"], "ip": ["*"]},
+	{"src": ["group:admin"], "dst": ["*"], "ip": ["*"]},
+	{"src": ["test@sbihi.tech"], "dst": ["tag:machine-1"], "ip": ["*"]},
+], "ssh": [
+	{
+		"action": "accept",
+		"src":    ["group:admin"],
+		"dst":    ["tag:machine-1", "tag:dev"],
+		"users":  ["root", "autogroup:nonroot"],
+	},
+	{
+		"action": "accept",
+		"src":    ["group:dev"],
+		"dst":    ["tag:dev"],
+		"users":  ["root", "autogroup:nonroot"],
+	},
+	{
+		"action": "check",
+		"src":    ["autogroup:member"],
+		"dst":    ["autogroup:self"],
+		"users":  ["root", "autogroup:nonroot"],
+	},
+	{
+		"action": "accept",
+		"src":    ["test@sbihi.tech"],
+		"dst":    ["tag:machine-1"],
+		"users":  ["root", "autogroup:nonroot"],
+	},
+]}
