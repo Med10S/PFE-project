@@ -1,0 +1,41 @@
+\chapter{Objectifs, perimetre et methodologie}
+
+\section{Introduction du chapitre}
+Ce chapitre precise les objectifs vises par le PFE, delimite le perimetre technique retenu et decrit la methode de travail suivie. Il sert de cadre de reference pour justifier les choix de conception, d'implementation et de validation presentes dans les chapitres suivants.
+
+\section{Objectif general du PFE}
+L'objectif principal est de concevoir, deployer et valider une architecture Zero Trust integrant:
+\begin{itemize}
+	\item une couche IAM pour centraliser l'authentification et la gouvernance des identites;
+	\item une couche de controle d'acces privilegie par politiques reseau et roles;
+	\item une couche PIM/JIT pour rendre les elevations de privilege temporaires, approuvees et revequables.
+\end{itemize}
+
+L'objectif de resultat est clair: eliminer les acces privilegies permanents non justifies et obtenir une tracabilite exploitable de bout en bout.
+
+\section{Perimetre technique}
+Le perimetre retenu pour le PFE inclut les composants suivants:
+\begin{itemize}
+	\item \textbf{Authentik}: IAM, federation, gestion des groupes et MFA.
+	\item \textbf{Tailscale ACL}: application des politiques reseau et controle d'acces aux cibles.
+	\item \textbf{Application web Flask + PostgreSQL}: cycle de vie des demandes (\texttt{pending}, \texttt{approved}, \texttt{denied}, \texttt{expired}).
+	\item \textbf{Moteur Python JIT}: approbation, revocation et expiration automatique des acces.
+	\item \textbf{Wazuh}: centralisation des evenements de securite et observabilite.
+\end{itemize}
+
+Sont hors perimetre immediat: la generalisation a l'ensemble du SI, la haute disponibilite multi-sites et l'integration complete avec tous les outils GRC de production.
+
+\section{Approche methodologique}
+La demarche adoptee est incrementale et orientee preuve:
+\begin{enumerate}
+	\item \textbf{Audit initial}: identification des risques lies aux acces privilegies existants.
+	\item \textbf{Conception cible}: modelisation des flux Zero Trust et choix des composants.
+	\item \textbf{Implementation}: integration progressive des briques IAM, ACL, application JIT et logs.
+	\item \textbf{Validation}: scenarios de test fonctionnels et securite avant/apres approbation.
+	\item \textbf{Mesure}: comparaison d'indicateurs avant/apres pour objectiver les gains.
+\end{enumerate}
+
+Cette methode permet d'assurer l'alignement entre objectifs de securite, contraintes du terrain et livrables mesurables.
+
+\section{Conclusion du chapitre}
+Les objectifs, le perimetre et la demarche sont clarifies de maniere operationnelle. Cette base methodologique garantit que les livrables techniques repondent a un besoin de securite mesurable et verifiable.

@@ -1,0 +1,212 @@
+\documentclass[12pt,a4paper,twoside]{report}
+
+% Load math packages early for XeLaTeX+bidi compatibility
+\usepackage{amsmath}
+\usepackage{amsfonts}
+\usepackage{amssymb}
+
+% ===== PACKAGES =====
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage[french]{babel}
+  \usepackage{lmodern}
+\else
+  \usepackage{fontspec}
+\fi
+\usepackage{geometry}
+\usepackage{fancyhdr}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{listings}
+\usepackage{csquotes}
+\usepackage[table]{xcolor}
+\usepackage{url}
+\usepackage{array}
+\usepackage{tabularx}
+\usepackage{longtable}
+\usepackage{multirow}
+\usepackage{setspace}
+\usepackage{titlesec}
+\usepackage{tocloft}
+\usepackage{appendix}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{pifont}
+\usepackage{placeins}
+
+\ifPDFTeX\else
+  \usepackage{polyglossia}
+  \setmainlanguage{french}
+  \setotherlanguage{arabic}
+  \setmainfont{Latin Modern Roman}
+  \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{Amiri}
+\fi
+
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\warning}{\ding{115}}
+
+% ===== CONFIGURATION DE PAGE =====
+\geometry{
+  left=3cm,
+  right=2.5cm,
+  top=2.5cm,
+  bottom=2.5cm,
+  headheight=16pt
+}
+
+% ===== STYLE DES EN-TETES ET PIEDS DE PAGE =====
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[LE]{\leftmark}
+\fancyhead[RO]{\rightmark}
+\fancyfoot[LE,RO]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% ===== TITRES =====
+\titleformat{\chapter}[hang]{\normalfont\LARGE\bfseries}{\thechapter}{1em}{}
+\titlespacing*{\chapter}{0pt}{-30pt}{20pt}
+\titleformat{\section}[hang]{\normalfont\Large\bfseries}{\thesection}{1em}{}
+\titlespacing*{\section}{0pt}{2ex plus 1ex minus .2ex}{1.5ex plus .2ex}
+\titleformat{\subsection}[hang]{\normalfont\large\bfseries}{\thesubsection}{1em}{}
+\titlespacing*{\subsection}{0pt}{2.25ex plus 1ex minus .2ex}{1ex plus .2ex}
+
+% ===== ESPACEMENT =====
+\onehalfspacing
+\setlength{\parindent}{1.5em}
+\setlength{\parskip}{0.2em}
+\raggedbottom
+\setlength{\textfloatsep}{12pt plus 2pt minus 2pt}
+\setlength{\floatsep}{10pt plus 2pt minus 2pt}
+\setlength{\intextsep}{10pt plus 2pt minus 2pt}
+\captionsetup{skip=6pt}
+
+% ===== COULEURS =====
+\definecolor{ztblue}{RGB}{35,75,120}
+\definecolor{ztgreen}{RGB}{72,130,72}
+\definecolor{ztgray}{RGB}{245,247,250}
+
+% ===== PAGE TITRE CHAPITRE =====
+\newcommand{\chapterpage}[1]{%
+  \clearpage
+  \thispagestyle{empty}
+  \vspace*{\fill}
+  \begin{flushleft}
+    {\huge\bfseries #1}
+  \end{flushleft}
+  \vspace*{\fill}
+  \clearpage
+}
+
+% ===== HYPERLIENS =====
+\hypersetup{
+  colorlinks=true,
+  linkcolor=ztblue,
+  urlcolor=ztblue,
+  citecolor=ztgreen,
+  pdfauthor={Mohammed Sbihi},
+  pdftitle={Rapport PFE - Architecture Zero Trust IAM/PIM/PAM},
+  pdfsubject={Cybersecurite - Zero Trust},
+  pdfkeywords={Zero Trust, IAM, PIM, PAM, Authentik, Tailscale, Wazuh}
+}
+
+\begin{document}
+
+% ===== PAGE DE GARDE =====
+\begin{titlepage}
+  \newgeometry{top=1.2cm, left=1.5cm, right=1.5cm, bottom=1.8cm}
+  \centering
+
+  
+  \vspace{0.4cm}
+
+  \IfFileExists{images/USMBA_banner.jpg}{
+    \includegraphics[width=0.9\textwidth]{images/USMBA_banner.jpg}
+  }{
+    \fcolorbox{black}{ztgray}{\parbox{0.9\textwidth}{\centering\vspace{0.5cm}
+    Espace reserve pour le bandeau ENSA/USMBA\vspace{0.5cm}}}
+  }
+
+  \vspace{1.2cm}
+  {\Huge\bfseries Projet de Fin d'Etudes\par}
+  \vspace{0.4cm}
+  {\Large\bfseries Filiere Genie Telecommunications et Reseaux\par}
+  \vspace{0.9cm}
+
+  \fcolorbox{black}{ztgray}{%
+    \begin{minipage}{0.92\textwidth}
+      \centering
+      \vspace{0.35cm}
+      {\LARGE\bfseries Architecture Zero Trust :}\\[0.2cm]
+      {\Large Reduction de la surface d'attaque par une gestion IAM/PIM/PAM}\\[0.15cm]
+      {\large Cas pratique : Authentik, Tailscale ACL et moteur JIT Python}
+      \vspace{0.35cm}
+    \end{minipage}
+  }
+
+  \vfill
+
+  \fcolorbox{black}{ztgray}{%
+    \begin{minipage}{0.98\textwidth}
+      \vspace{0.2cm}
+      \textbf{Realise par :} M. SBIHI MOHAMMED\\[0.2cm]
+      \textbf{Encadrant ENSA :} Pr. ........................................\\[0.2cm]
+      \textbf{Encadrant entreprise :} ........................................\\[0.2cm]
+      \textbf{Annee universitaire :} 2025--2026
+      \vspace{0.2cm}
+    \end{minipage}
+  }
+\end{titlepage}
+\restoregeometry
+
+% ===== PAGES PRELIMINAIRES =====
+\pagenumbering{Roman}
+\setcounter{page}{1}
+
+\input{sections/remerciements}
+\input{sections/resume_fr}
+\input{sections/abstract_en}
+\input{sections/resume_ar}
+\input{sections/abreviations}
+
+\clearpage
+\setcounter{tocdepth}{1}
+\setcounter{secnumdepth}{3}
+\tableofcontents
+\clearpage
+
+\listoffigures
+\clearpage
+
+\listoftables
+\clearpage
+
+% ===== CORPS DU RAPPORT =====
+\pagenumbering{arabic}
+\setcounter{page}{1}
+
+\chapterpage{Chapitre 1 : Representation CGI}
+\input{sections/00_representation_cgi}
+\chapterpage{Chapitre 2 : Contexte et problematique}
+\input{sections/01_contexte_et_problematique}
+\chapterpage{Chapitre 3 : Objectifs, perimetre et methodologie}
+\input{sections/02_objectifs_perimetre_methodologie}
+\chapterpage{Chapitre 4 : Architecture Zero Trust globale}
+\input{sections/03_architecture_globale}
+\chapterpage{Chapitre 5 : Implementation par composant}
+\input{sections/04_implementation_par_composant}
+\chapterpage{Chapitre 6 : Scenarios de test et validation}
+\input{sections/05_scenarios_de_test_et_validation}
+\chapterpage{Chapitre 7 : Resultats, metriques et discussion}
+\input{sections/06_resultats_metriques_discussion}
+\chapterpage{Chapitre 8 : Limites et perspectives}
+\input{sections/07_limites_et_perspectives}
+\chapterpage{Chapitre 9 : Conclusion generale}
+\input{sections/08_conclusion_generale}
+
+
+\end{document}

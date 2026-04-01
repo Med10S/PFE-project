@@ -1,0 +1,61 @@
+\xpginauxfiletrue 
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.1}{\ignorespaces Etape 1: saisie de l'email utilisateur dans le flux de connexion Tailscale.}}{14}{figure.caption.6}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.2}{\ignorespaces Etape 2: redirection vers Authentik pour la verification d'identite (SSO IAM).}}{15}{figure.caption.7}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.3}{\ignorespaces Etape 3: retour vers Tailscale apres authentification validee par Authentik.}}{15}{figure.caption.8}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.4}{\ignorespaces Page de connexion IAM de l'application, point d'entree du controle d'identite.}}{16}{figure.caption.9}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.5}{\ignorespaces Configuration de l'application dans Authentik (provider, integration et parametres de federation).}}{16}{figure.caption.10}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.6}{\ignorespaces Groupes utilises pour la politique d'acces et l'application des droits par profil.}}{17}{figure.caption.11}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.7}{\ignorespaces Etat ACL avant approbation: politique restrictive, sans autorisation explicite pour l'utilisateur cible.}}{18}{figure.caption.12}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.8}{\ignorespaces Etat ACL apres approbation: regle d'acces temporaire ajoutee pour permettre la connexion.}}{19}{figure.caption.13}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.9}{\ignorespaces Vue des utilisateurs Tailscale, utilisee pour verifier les identites effectives dans le tailnet.}}{20}{figure.caption.14}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.10}{\ignorespaces Dashboard utilisateur (user side): consultation de l'etat des acces et lancement d'une demande JIT.}}{21}{figure.caption.15}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.11}{\ignorespaces Dashboard administrateur (admin side): supervision globale des demandes et des actions de gouvernance.}}{21}{figure.caption.16}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.12}{\ignorespaces Vue profil admin: verification des attributs d'identite et des permissions associees au role administrateur.}}{22}{figure.caption.17}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.13}{\ignorespaces Interface de traitement des demandes d'acces cote admin (liste des requetes et statut).}}{22}{figure.caption.18}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.14}{\ignorespaces Action d'approbation d'une demande par l'administrateur, declenchant l'activation ACL temporaire.}}{23}{figure.caption.19}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.15}{\ignorespaces Etat de la demande apres approbation vu depuis l'interface administrateur.}}{23}{figure.caption.20}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.16}{\ignorespaces Etat cote utilisateur apres validation admin: acces marque comme approuve avec fenetre temporelle active.}}{24}{figure.caption.21}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.17}{\ignorespaces Fonction de revocation d'acces dans le moteur Python: suppression des regles ACL SSH/Grant et gestion du rollback en cas d'echec API.}}{25}{figure.caption.22}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.18}{\ignorespaces Code de journalisation SSH.}}{26}{figure.caption.23}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {5.19}{\ignorespaces Preuve de centralisation Wazuh: traces de commandes SSH executees sur la machine cible avec contexte utilisateur.}}{27}{figure.caption.24}%
+\addvspace {10\p@ }
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {6.1}{\ignorespaces Preuve TC-01: ecran de connexion IAM avant emission d'une session valide.}}{30}{figure.caption.25}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {6.2}{\ignorespaces Preuve TC-03: action d'approbation executee par l'administrateur.}}{31}{figure.caption.26}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {6.3}{\ignorespaces Preuve TC-03: regle ACL active apres approbation de la demande.}}{32}{figure.caption.27}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {6.4}{\ignorespaces Preuve TC-04 (avant approbation): tentative SSH refusee car aucun droit temporaire n'est encore actif.}}{33}{figure.caption.28}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {6.5}{\ignorespaces Preuve TC-04 (apres approbation): tentative SSH acceptee pendant la fenetre d'acces JIT.}}{33}{figure.caption.29}%
+\setforeignlanguage {french}
+\contentsline {figure}{\numberline {6.6}{\ignorespaces Preuve TC-06: evenements Wazuh issus des commandes SSH journalisees sur la machine cible.}}{34}{figure.caption.30}%
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\addvspace {10\p@ }
+\xpginauxfilefalse 

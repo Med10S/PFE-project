@@ -1,0 +1,14 @@
+\chapter*{Abstract}
+\addcontentsline{toc}{chapter}{Abstract}
+
+This final-year project addresses attack-surface reduction in a privileged-access context through an integrated Zero Trust architecture. The main issue identified in the initial environment is the presence of persistent privileged access, limited traceability, and weak correlation between access rights and asset criticality.
+
+The proposed solution combines five main building blocks: \textbf{Authentik} for Identity and Access Management (IAM), \textbf{Tailscale ACL} for network-level authorization, a \textbf{Flask web application with PostgreSQL} for request lifecycle governance, a \textbf{Python Just-in-Time engine} for automated approval and revocation, and \textbf{Wazuh} for centralized monitoring and auditability.
+
+The target workflow enforces a strict principle: no permanent privileged access. Every elevation request must be justified, approved, time-bounded (TTL), and automatically revoked. Validation scenarios cover strong authentication, JIT request creation, ACL activation, SSH access during authorized time windows, and automatic denial after expiration.
+
+Expected outcomes include a stronger security posture, full end-to-end traceability of privileged access, and improved compliance evidence for audit processes.
+
+\textbf{Keywords:} Zero Trust, IAM, PIM, PAM, Authentik, Tailscale, JIT, ACL, Wazuh, cybersecurity.
+
+\clearpage

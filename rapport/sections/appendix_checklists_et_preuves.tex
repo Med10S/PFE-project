@@ -1,0 +1,61 @@
+\chapter{Checklists et preuves}
+
+\section{Checklist de redaction}
+\begin{itemize}
+	\item [ ] Chapitre 1 complete et valide
+	\item [ ] Chapitre 2 complete et valide
+	\item [ ] Chapitre 3 complete et valide
+	\item [ ] Chapitre 4 complete avec preuves UI/code
+	\item [ ] Chapitre 5 complete avec resultats observes
+	\item [ ] Chapitre 6 complete avec metriques avant/apres
+	\item [ ] Chapitre 7 complete avec perspectives realistes
+	\item [ ] Chapitre 8 finalise et coherent avec le corps du rapport
+	\item [ ] Relecture orthographique et harmonisation du style
+\end{itemize}
+
+\section{Inventaire des captures et preuves}
+\textbf{Authentik}
+\begin{itemize}
+	\item [ ] Login
+	\item [ ] MFA TOTP
+	\item [ ] Configuration application/provider OIDC
+	\item [ ] Groupes et roles
+\end{itemize}
+
+\textbf{Tailscale}
+\begin{itemize}
+	\item [ ] ACL avant approbation
+	\item [ ] ACL apres approbation
+	\item [ ] Vue machine cible et tags
+\end{itemize}
+
+\textbf{Application web Flask}
+\begin{itemize}
+	\item [ ] Dashboard utilisateur
+	\item [ ] Formulaire de demande JIT
+	\item [ ] Blocage doublon pending
+	\item [ ] Dashboard admin et action approve/deny
+	\item [ ] Timer d'expiration
+\end{itemize}
+
+\textbf{Moteur Python JIT}
+\begin{itemize}
+	\item [ ] Extrait \texttt{approve\_access\_request}
+	\item [ ] Extrait \texttt{revoke\_access\_request}
+	\item [ ] Extrait \texttt{cleanup\_expired\_requests}
+	\item [ ] Sortie script d'expiration
+\end{itemize}
+
+\textbf{Validation SSH}
+\begin{itemize}
+	\item [ ] SSH refuse avant approbation
+	\item [ ] SSH autorise apres approbation
+	\item [ ] SSH refuse apres expiration
+\end{itemize}
+
+\textbf{Wazuh / audit}
+\begin{itemize}
+	\item [ ] Dashboard evenements
+	\item [ ] Log action admin
+	\item [ ] Log revocation/expiration
+\end{itemize}

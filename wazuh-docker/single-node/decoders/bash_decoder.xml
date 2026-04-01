@@ -4,7 +4,7 @@
 
 <decoder name="bash_audit_fields">
   <parent>bash_audit</parent>
-  <prematch>^\[\S+ from\s+\S+ using \S+\]</prematch>
-  <regex>^\[(\S+)\s+from\s+(\S+)\s+using\s+(\S+)\]\s+(.+)</regex>
+  <prematch type="pcre2">^\[[^ ]+ from [^ ]+ using [^ ]+\]</prematch>
+  <regex type="pcre2">^\[([^ ]+) from ([^ ]+) using ([^ ]+)\] (.+)</regex>
   <order>tailscale_user, srcip, local_user, command</order>
 </decoder>

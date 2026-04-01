@@ -63,6 +63,7 @@ services:
       - wazuh_etc:/var/ossec/etc
       - ./decoders/bash_decoder.xml:/var/ossec/etc/decoders/bash_decoder.xml
       - ./rules/bash_rules.xml:/var/ossec/etc/rules/bash_rules.xml
+      - ./agents/agent.conf:/var/ossec/etc/shared/default/agent.conf
       - wazuh_logs:/var/ossec/logs
       - wazuh_queue:/var/ossec/queue
       - wazuh_var_multigroups:/var/ossec/var/multigroups

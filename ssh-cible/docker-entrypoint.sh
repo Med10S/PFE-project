@@ -34,7 +34,7 @@ get_tailscale_user() {
 }
 
 # Enregistre CHAQUE commande avec l'email Tailscale dans auth.log
-export PROMPT_COMMAND="history -a; TS_EMAIL=\$(get_tailscale_user); logger -p auth.info -t bash -i \"[\$TS_EMAIL from  \${SSH_CONNECTION%% *} using $(whoami)] \$(history 1 | sed 's/^[ ]*[0-9]*[ ]*//')\""
+export PROMPT_COMMAND="history -a; TS_EMAIL=\$(get_tailscale_user); logger -p auth.info -t bash -i \"[\$TS_EMAIL from \${SSH_CONNECTION%% *} using $(whoami)] \$(history 1 | sed 's/^[ ]*[0-9]*[ ]*//')\""
 # -----------------------------------------
 EOF
 
@@ -43,9 +43,13 @@ rm -f /run/rsyslogd.pid
 /usr/sbin/rsyslogd
 tailscaled &
 
+
+WAZUH_MANAGER='wazuh.manager' WAZUH_AGENT_NAME=${WAZUH_AGENT_NAME} dpkg -i ./wazuh-agent_4.14.4-1_amd64.deb 
+	
+
+echo "Configuration de l'agent Wazuh pour se connecter au manager..."
 sed -i 's/<address>.*<\/address>/<address>wazuh.manager<\/address>/' /var/ossec/etc/ossec.conf
 /var/ossec/bin/wazuh-control restart
-
 
 echo "Architecture sécurisée prête. Démarrage de SSH..."
 exec /usr/sbin/sshd -D -e

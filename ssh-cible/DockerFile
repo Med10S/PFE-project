@@ -26,8 +26,8 @@ RUN apt-get update \
 	&& sed -i 's/^#\?UsePAM.*/UsePAM yes/' /etc/ssh/sshd_config \
 	&& echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config
 
-RUN apt update && apt install -y lsb-release && apt install -y wget 
-RUN wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.4-1_amd64.deb
+RUN apt update && apt install -y lsb-release && apt install -y wget  
+RUN wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.4-1_amd64.deb 
 
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh

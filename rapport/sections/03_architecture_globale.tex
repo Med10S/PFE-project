@@ -1,0 +1,63 @@
+\chapter{Architecture Zero Trust globale}
+
+\section{Introduction du chapitre}
+Ce chapitre presente l'architecture cible de la solution Zero Trust et la logique d'articulation entre les composants IAM, ACL, application metier et observabilite. Il met en relation les choix techniques avec les besoins de controle, de temporalite et de tracabilite.
+
+\section{Vue d'ensemble}
+L'architecture cible est organisee en couches fonctionnelles pour separer les responsabilites:
+\begin{itemize}
+	\item \textbf{Couche IAM}: Authentik verifie l'identite, applique le MFA et expose les claims necessaires.
+	\item \textbf{Couche controle d'acces}: Tailscale applique les ACL selon les utilisateurs, groupes et tags machines.
+	\item \textbf{Couche gouvernance JIT}: l'application Flask orchestre les demandes et l'etat des autorisations.
+	\item \textbf{Couche execution}: le moteur Python applique/revoque les regles ACL et gere l'expiration.
+	\item \textbf{Couche observabilite}: Wazuh centralise les logs et facilite l'audit.
+\end{itemize}
+
+Le cycle d'acces devient explicite: authentification, demande, approbation, activation temporaire, expiration, revocation.
+
+\section{Architecture reseau de deploiement}
+Le deploiement est realise integralement sous Docker sur une machine virtuelle Linux hebergee sur Azure Cloud. L'ensemble des services (IAM, proxy, application metier, cible SSH et SIEM) est execute en conteneurs, ce qui permet une reproduction controlee de l'environnement de test et une isolation claire des composants.
+
+Le point d'entree externe est place derriere un proxy inverse dedie. Ce proxy publie uniquement les services necessaires (portails web et APIs) et maintient les services internes non exposes directement a Internet.
+
+La topologie logique retenue repose sur des reseaux Docker separes:
+\begin{itemize}
+	\item \textbf{reseau proxy/publication}: terminaison des flux entrants et routage vers les services applicatifs autorises;
+	\item \textbf{reseau authentik}: communication entre IAM et composants qui consomment les jetons d'identite;
+	\item \textbf{reseau ssh-cible}: communication controlee entre la machine cible SSH et les services de securite associes;
+	\item \textbf{reseau wazuh}: transport des journaux vers le manager et l'indexeur pour la centralisation SIEM.
+\end{itemize}
+
+Cette segmentation reseau complete le modele Zero Trust: meme dans une meme VM Azure, les conteneurs ne partagent pas implicitement tous les flux. Chaque communication inter-service doit etre explicitement autorisee par la topologie Docker, puis par les politiques IAM/ACL au niveau applicatif et reseau.
+
+\section{Alternatives et choix}
+Deux strategies ont ete etudiees:
+\begin{itemize}
+	\item \textbf{Approche SaaS commerciale}: deploiement rapide et support editeur, mais dependance forte au fournisseur et cout recurrent.
+	\item \textbf{Approche auto-hebergee open source}: souverainete des donnees et flexibilite elevee, avec une charge d'administration plus importante.
+\end{itemize}
+
+Le projet retient une approche majoritairement auto-hebergee, adaptee au contexte de laboratoire et a la contrainte de maitrise des couts. Le choix final est:
+\begin{itemize}
+	\item Authentik pour l'IAM;
+	\item Tailscale ACL pour le controle reseau;
+	\item moteur JIT Python pour la logique metier temporelle;
+	\item Wazuh pour la supervision et la tracabilite.
+\end{itemize}
+
+\section{Flux de securite cible}
+Le flux de securite cible est le suivant:
+\begin{enumerate}
+	\item l'utilisateur s'authentifie via Authentik (avec MFA);
+	\item il soumet une demande d'acces a une machine cible depuis l'application web;
+	\item le systeme verifie l'absence de doublon \texttt{pending};
+	\item un administrateur approuve la demande;
+	\item le moteur JIT active la regle ACL pour une duree definie (TTL);
+	\item l'utilisateur accede a la cible pendant la fenetre autorisee;
+	\item a expiration, la regle est retiree automatiquement et le statut passe a \texttt{expired}.
+\end{enumerate}
+
+Ce flux permet de reduire la confiance implicite et de transformer l'acces privilegie en processus controle et auditable.
+
+\section{Conclusion du chapitre}
+L'architecture proposee etablit une separation claire des responsabilites et un flux de securite de bout en bout. Elle constitue la reference de mise en oeuvre detaillee dans le chapitre d'implementation.

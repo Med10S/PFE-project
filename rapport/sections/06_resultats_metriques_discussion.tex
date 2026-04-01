@@ -1,0 +1,48 @@
+\chapter{Resultats, metriques et discussion}
+
+\section{Introduction du chapitre}
+Ce chapitre presente la lecture des resultats obtenus apres mise en oeuvre de la solution. Il compare la situation avant/apres, interprete les gains et discute la portee des effets observes sur la securite et la gouvernance des acces.
+
+\section{Indicateurs avant/apres}
+Les indicateurs de performance securite retenus sont presentes ci-dessous.
+
+\begin{center}
+\begin{tabular}{|p{4.2cm}|p{3.2cm}|p{3.2cm}|p{3.2cm}|}
+\hline
+\textbf{Metrique} & \textbf{Avant} & \textbf{Apres} & \textbf{Gain estime} \\
+\hline
+Acces privilegies permanents sur cibles critiques & Non maitrise & Controle JIT & Elimination des acces permanents non justifies \\
+\hline
+Duree moyenne d'acces privilegie & Illimitee & TTL borne (1h a 4h) & Forte reduction de la fenetre d'exposition \\
+\hline
+Sessions auditables & Partielle & Tracabilite de bout en bout & Couverture audit fortement amelioree \\
+\hline
+MFA sur parcours sensible & Non systematique & Generalise via IAM & Hausse majeure du niveau d'assurance \\
+\hline
+Reexecution post-expiration & Possible dans certains cas & Refusee par conception & Reduction du risque de privilege persistant \\
+\hline
+\end{tabular}
+\end{center}
+
+\section{Analyse des gains}
+Les gains observes se situent sur trois axes:
+\begin{itemize}
+	\item \textbf{Securite}: reduction de la confiance implicite et application stricte du moindre privilege.
+	\item \textbf{Gouvernance}: formalisation d'un workflow de demande/approbation explicite et controlable.
+	\item \textbf{Auditabilite}: disponibilite de preuves techniques (captures, journaux, statuts applicatifs) pour les besoins de conformite.
+\end{itemize}
+
+La valeur metier est particulierement visible sur les interventions de remediation vulnerabilite, car chaque action privilegiee devient justifiee et rattachee a un contexte.
+
+\section{Discussion}
+Le prototype valide la faisabilite d'une architecture Zero Trust pragmatique avec des composants open source et des integrations legeres en Python.
+
+Les principaux retours d'experience sont:
+\begin{itemize}
+	\item l'integration IAM + ACL + workflow applicatif est suffisante pour obtenir un resultat mesurable rapidement;
+	\item la qualite de la preuve (captures, logs, commandes) est aussi importante que la logique technique;
+	\item la maturite operationnelle dependra ensuite de l'industrialisation (CI/CD, supervision avancee, haute disponibilite).
+\end{itemize}
+
+\section{Conclusion du chapitre}
+Les metriques et l'analyse confirment une amelioration tangible de la posture de securite sur les acces privilegies. Les resultats obtenus justifient la poursuite vers une phase d'industrialisation et d'extension du perimetre.

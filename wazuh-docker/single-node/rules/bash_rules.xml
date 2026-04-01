@@ -1,11 +1,11 @@
 <group name="bash_audit,">
-  <rule id="100001" level="3">
+  <rule id="100011" level="3">
     <decoded_as>bash_audit</decoded_as>
     <description>Audit de commande Bash via Tailscale</description>
   </rule>
 
   <rule id="100002" level="6">
-    <if_sid>100001</if_sid>
+    <if_sid>100011</if_sid>
     <field name="command">^apt|^dpkg|^rm|^nano|^vi</field>
     <description>Action d'administration Bash par $(tailscale_user)</description>
     <group>pfe_audit,pci_dss_10.2.2,</group>
