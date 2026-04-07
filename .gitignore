@@ -9,3 +9,7 @@ web-page/.env
 /single-node/config/wazuh_indexer_ssl_certs/*.key
 
 *.log
+
+main.*
+!main.tex
+!main.pdf

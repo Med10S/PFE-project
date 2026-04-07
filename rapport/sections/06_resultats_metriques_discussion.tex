@@ -6,23 +6,46 @@ Ce chapitre presente la lecture des resultats obtenus apres mise en oeuvre de la
 \section{Indicateurs avant/apres}
 Les indicateurs de performance securite retenus sont presentes ci-dessous.
 
-\begin{center}
-\begin{tabular}{|p{4.2cm}|p{3.2cm}|p{3.2cm}|p{3.2cm}|}
-\hline
-\textbf{Metrique} & \textbf{Avant} & \textbf{Apres} & \textbf{Gain estime} \\
-\hline
-Acces privilegies permanents sur cibles critiques & Non maitrise & Controle JIT & Elimination des acces permanents non justifies \\
-\hline
-Duree moyenne d'acces privilegie & Illimitee & TTL borne (1h a 4h) & Forte reduction de la fenetre d'exposition \\
-\hline
-Sessions auditables & Partielle & Tracabilite de bout en bout & Couverture audit fortement amelioree \\
-\hline
-MFA sur parcours sensible & Non systematique & Generalise via IAM & Hausse majeure du niveau d'assurance \\
-\hline
-Reexecution post-expiration & Possible dans certains cas & Refusee par conception & Reduction du risque de privilege persistant \\
-\hline
-\end{tabular}
-\end{center}
+\begin{table}[h]
+    \centering
+    % Le titre qui apparaîtra au-dessus du tableau
+    \caption{Comparatif des indicateurs de sécurité (Avant vs Après)} 
+    \label{tab:securite_comparatif} 
+
+    \begin{tabular}{|p{4.2cm}|p{3.2cm}|p{3.2cm}|p{3.2cm}|}
+        \hline
+        \rowcolor[gray]{0.9} % Optionnel : gris léger pour l'entête (nécessite \usepackage[table]{xcolor})
+        \textbf{Métrique} & \textbf{Avant} & \textbf{Après} & \textbf{Gain estimé} \\
+        \hline
+        Accès privilégiés permanents & Non maîtrisé & Contrôle JIT & Élimination des accès permanents \\
+        \hline
+        Durée d'accès privilégié & Illimitée & TTL (1h à 4h) & Réduction fenêtre d'exposition \\
+        \hline
+        Sessions auditables & Partielle & Traçabilité totale & Conformité audit améliorée \\
+        \hline
+        MFA sur parcours sensible & Non systématique & Généralisé (IAM) & Niveau d'assurance élevé \\
+        \hline
+        Réexécution post-expiration & Possible & Refusée & Risque de persistance nul \\
+        \hline
+    \end{tabular}
+\end{table}
+
+\subsection*{Description et analyse de l'analyse comparative de sécurité}
+
+Le tableau \ref{tab:securite_comparatif} présente une étude comparative de la posture de sécurité de l'infrastructure avant et après l'implémentation des mécanismes de protection avancés. Cette analyse met en exergue l'évolution vers une architecture de confiance, structurée autour de quatre axes majeurs :
+
+\begin{itemize}
+    \item \textbf{Contrôle des accès (Just-In-Time) :} Initialement caractérisée par des accès privilégiés permanents, l'infrastructure présentait une surface d'attaque critique. L'introduction du modèle \textit{Just-In-Time} (JIT) permet désormais de limiter l'attribution de privilèges à une durée strictement nécessaire, éliminant ainsi les risques liés aux comptes dormants ou aux accès résiduels.
+    
+    \item \textbf{Réduction de la fenêtre d'exposition (TTL) :} Par l'application d'un \textit{Time-To-Live} (TTL) rigoureux (compris entre 1h et 4h), la durée de vie des sessions d'accès a été drastiquement réduite. Cette mesure de confinement temporel garantit qu'en cas de compromission d'un identifiant, l'exploitation malveillante est limitée dans le temps.
+    
+    \item \textbf{Auditabilité et Observabilité :} Le passage d'une visibilité partielle à une traçabilité exhaustive de chaque session assure une imputabilité totale. Ce renforcement de la journalisation est un prérequis indispensable pour la conformité aux normes de sécurité internationales et pour une réponse aux incidents efficace.
+    
+    \item \textbf{Authentification Multi-Facteurs (MFA) :} La généralisation du MFA via notre service d'IAM (\textit{Identity and Access Management}) sur l'ensemble des parcours sensibles vient renforcer la barrière d'entrée, garantissant une vérification d'identité robuste pour chaque interaction critique avec la plateforme.
+\end{itemize}
+
+
+
 
 \section{Analyse des gains}
 Les gains observes se situent sur trois axes:
@@ -34,7 +57,9 @@ Les gains observes se situent sur trois axes:
 
 La valeur metier est particulierement visible sur les interventions de remediation vulnerabilite, car chaque action privilegiee devient justifiee et rattachee a un contexte.
 
-\section{Discussion}
+
+
+\section{Conclusion du chapitre}
 Le prototype valide la faisabilite d'une architecture Zero Trust pragmatique avec des composants open source et des integrations legeres en Python.
 
 Les principaux retours d'experience sont:
@@ -43,6 +68,3 @@ Les principaux retours d'experience sont:
 	\item la qualite de la preuve (captures, logs, commandes) est aussi importante que la logique technique;
 	\item la maturite operationnelle dependra ensuite de l'industrialisation (CI/CD, supervision avancee, haute disponibilite).
 \end{itemize}
-
-\section{Conclusion du chapitre}
-Les metriques et l'analyse confirment une amelioration tangible de la posture de securite sur les acces privilegies. Les resultats obtenus justifient la poursuite vers une phase d'industrialisation et d'extension du perimetre.
