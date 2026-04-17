@@ -1,6 +1,7 @@
 services:
   ssh-cible:
     container_name: ssh-cible
+    image: ssh-cible-shared:latest
     build:
       context: .
       dockerfile: DockerFile
@@ -15,19 +16,20 @@ services:
       WAZUH_AGENT_NAME: ${WAZUH_AGENT_NAME_1}
     cap_add:
       - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
     volumes:
       - tailscale-state:/var/lib/tailscale
     restart: unless-stopped
     networks:
       - default # Réseau totalement isolé
 
-
-    
   ssh-cible-2:
     container_name: ssh-cible-2
-    image: ssh-cible_ssh-cible:latest
+    image: ssh-cible-shared:latest
+    build:
+      context: .
+      dockerfile: DockerFile
+      args:
+        USERNAME: ${SSH_USERNAME:-pfe_user}
     env_file:
       - .env
     environment:
@@ -37,8 +39,6 @@ services:
       WAZUH_AGENT_NAME: ${WAZUH_AGENT_NAME_2}
     cap_add:
       - NET_ADMIN
-    devices:
-      - /dev/net/tun:/dev/net/tun
     volumes:
       - tailscale-state-2:/var/lib/tailscale
     restart: unless-stopped
@@ -47,7 +47,7 @@ services:
 
 networks:
   default:
-    internal: false   
+    internal: true
 
 volumes:
   tailscale-state:

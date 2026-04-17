@@ -1,37 +1,57 @@
 FROM ubuntu:24.04
 
 ARG USERNAME=pfe_user
+ARG WAZUH_VERSION=4.14.4-1
+
 ENV SSH_USER=${USERNAME}
 
-ARG CACHEBUST=1
-RUN apt-get update \
-	&& apt-get install -y --no-install-recommends \
-		openssh-server \
-		jq \
-		rsyslog \
-		curl \
-		ca-certificates \
-		gnupg \
-	&& curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
-		| tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
-	&& curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
-		| tee /etc/apt/sources.list.d/tailscale.list \
-	&& apt-get update \
-	&& apt-get install -y --no-install-recommends tailscale \
-	&& rm -rf /var/lib/apt/lists/* \
-	&& mkdir -p /var/run/sshd \
-	&& useradd -m -s /bin/bash ${USERNAME} \
-	&& sed -i 's/^#\?PermitRootLogin.*/PermitRootLogin no/' /etc/ssh/sshd_config \
-	&& sed -i 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-	&& sed -i 's/^#\?UsePAM.*/UsePAM yes/' /etc/ssh/sshd_config \
-	&& echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config
-
-RUN apt update && apt install -y lsb-release && apt install -y wget  
-RUN wget https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.14.4-1_amd64.deb 
-
-
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+	&& chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Combine ALL apt operations in a single layer to minimize image size
+RUN printf 'Types: deb\nURIs: http://archive.ubuntu.com/ubuntu\nSuites: noble noble-updates noble-security\nComponents: main\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n' \
+	> /etc/apt/sources.list.d/ubuntu.sources \
+	&& apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+	&& apt-get install -y --no-install-recommends \
+	openssh-server \
+	jq \
+	rsyslog \
+	curl \
+	ca-certificates \
+	gnupg \
+	lsb-release \
+	wget \
+	# Add Tailscale repo
+	&& curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.noarmor.gpg \
+	| tee /usr/share/keyrings/tailscale-archive-keyring.gpg >/dev/null \
+	&& curl -fsSL https://pkgs.tailscale.com/stable/ubuntu/noble.tailscale-keyring.list \
+	| tee /etc/apt/sources.list.d/tailscale.list \
+	&& apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+	&& apt-get install -y --no-install-recommends --fix-missing tailscale \
+	# Add and install Wazuh agent from official APT repository
+	&& apt-get install -y --no-install-recommends apt-transport-https \
+	&& curl -fsSL https://packages.wazuh.com/key/GPG-KEY-WAZUH \
+	| gpg --no-default-keyring --keyring gnupg-ring:/usr/share/keyrings/wazuh.gpg --import \
+	&& chmod 644 /usr/share/keyrings/wazuh.gpg \
+	&& echo "deb [signed-by=/usr/share/keyrings/wazuh.gpg] https://packages.wazuh.com/4.x/apt/ stable main" > /etc/apt/sources.list.d/wazuh.list \
+	&& apt-get -o Acquire::Retries=5 -o Acquire::http::Timeout=30 -o Acquire::https::Timeout=30 update \
+	&& apt-get install -y --no-install-recommends --fix-missing wazuh-agent \
+	# SSH hardening
+	&& mkdir -p /var/run/sshd \
+	&& mkdir -p /etc/ssh \
+	&& touch /etc/ssh/sshd_config \
+	&& useradd -m -s /bin/bash ${USERNAME} \
+	&& sed -i \
+	-e 's/^#\?PermitRootLogin.*/PermitRootLogin no/' \
+	-e 's/^#\?PasswordAuthentication.*/PasswordAuthentication yes/' \
+	-e 's/^#\?UsePAM.*/UsePAM yes/' \
+	/etc/ssh/sshd_config \
+	&& echo "AllowUsers ${USERNAME}" >> /etc/ssh/sshd_config \
+	# Cleanup in the same layer
+	&& rm -rf /var/lib/apt/lists/*
+
+
 
 EXPOSE 22
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]

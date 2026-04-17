@@ -2,10 +2,11 @@ services:
   nginx-proxy-manager:
     image: 'jc21/nginx-proxy-manager:latest'
     ports:
-      - '80:80'   # Le port public pour tes domaines
+      - '80:80' # Le port public pour tes domaines
       - '443:443' # Pour le futur HTTPS
-      - '81:81'   # Interface d'administration du proxy
+      - '81:81' # Interface d'administration du proxy
     volumes:
+      - ./cloud-flair.bash:/cloud-flair.bash:ro
       - ./data:/data
       - ./letsencrypt:/etc/letsencrypt
     networks:
@@ -13,13 +14,9 @@ services:
       - authentik_network
     restart: unless-stopped
 
-
 networks:
   proxy-network: {}
   authentik_network:
     external: true
   jms_net:
     external: true
-  
-
-    

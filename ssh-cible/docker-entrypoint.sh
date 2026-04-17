@@ -41,10 +41,21 @@ EOF
 # Lancement des services
 rm -f /run/rsyslogd.pid
 /usr/sbin/rsyslogd
-tailscaled &
+if [ -c /dev/net/tun ]; then
+  echo "Démarrage de Tailscale..."
+  tailscaled &
+  if ! tailscale up --auth-key="${TAILSCALE_AUTHKEY}" --hostname="${TAILSCALE_HOSTNAME}"; then
+    echo "Avertissement: tailscale up a échoué, le conteneur continue sans connectivité Tailscale."
+  fi
+else
+  echo "Avertissement: /dev/net/tun absent (WSL2/Docker Desktop). Tailscale est désactivé dans ce conteneur."
+fi
 
 
-WAZUH_MANAGER='wazuh.manager' WAZUH_AGENT_NAME=${WAZUH_AGENT_NAME} dpkg -i ./wazuh-agent_4.14.4-1_amd64.deb 
+if [ ! -x /var/ossec/bin/wazuh-control ]; then
+  echo "Erreur: wazuh-agent n'est pas installé dans l'image."
+  exit 1
+fi
 	
 
 echo "Configuration de l'agent Wazuh pour se connecter au manager..."
