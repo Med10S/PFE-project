@@ -16,6 +16,8 @@ services:
       WAZUH_AGENT_NAME: ${WAZUH_AGENT_NAME_1}
     cap_add:
       - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     volumes:
       - tailscale-state:/var/lib/tailscale
     restart: unless-stopped
@@ -39,6 +41,8 @@ services:
       WAZUH_AGENT_NAME: ${WAZUH_AGENT_NAME_2}
     cap_add:
       - NET_ADMIN
+    devices:
+      - /dev/net/tun:/dev/net/tun
     volumes:
       - tailscale-state-2:/var/lib/tailscale
     restart: unless-stopped
@@ -47,7 +51,7 @@ services:
 
 networks:
   default:
-    internal: true
+    internal: false # Permet la communication entre les conteneurs
 
 volumes:
   tailscale-state:
