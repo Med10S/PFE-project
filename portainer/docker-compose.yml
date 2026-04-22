@@ -1,4 +1,4 @@
-version: '3.3'
+
 services:
   portainer:
     image: portainer/portainer-ce:latest
@@ -7,8 +7,15 @@ services:
     ports:
       - "9920:9000"
       - "1443:9443"
+    networks:
+      - authentik_network    
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
 volumes:
   portainer_data:
+
+
+networks:
+  authentik_network:
+    external: true
