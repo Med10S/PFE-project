@@ -43,5 +43,7 @@ RUN touch /app/logs/cron.log \
 # Exposer le port
 EXPOSE 5000
 
+RUN chmod +x /app/docker-entrypoint.sh
+
 # Lancer cron + application Flask
-CMD ["sh", "-c", "printenv > /etc/environment && cron && python3 app.py"]
+CMD ["sh", "-c", "printenv > /etc/environment && cron && ./app/docker-entrypoint.sh && python3 app.py"]

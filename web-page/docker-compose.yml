@@ -30,7 +30,8 @@ services:
       - "5000:5000"
     volumes:
       - .:/app
-      - ./logs:/app/logs
+      - ./logs:/app/
+      - ./docker-entrypoint.sh:/app/docker-entrypoint.sh
     depends_on:
       postgres:
         condition: service_healthy
