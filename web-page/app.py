@@ -149,6 +149,7 @@ def get_tailscale_devices():
     try:
         url = f"{TAILSCALE_BASE_URL}/tailnet/{TAILSCALE_TAILNET}/devices"
         response = requests.get(url, headers=get_tailscale_headers(), timeout=10)
+        
         if response.status_code == 200:
             devices = response.json().get("devices", [])
             return [
@@ -159,15 +160,15 @@ def get_tailscale_devices():
                     "user": device.get("user"),
                     "addresses": device.get("addresses", []),
                     "tags": device.get("tags", []),
-                    "status": (
-                        "en ligne" if device.get("connectedToControl") else "hors ligne"
-                    ),
+                    "status": "en ligne" if device.get("connectedToControl") else "hors ligne",
                     "os": device.get("os"),
                     "lastSeen": device.get("lastSeen"),
                 }
                 for device in devices
             ]
-        return []
+        else:
+            print(f"Erreur: {response.status_code} - {response.text}")
+            return []
     except Exception as e:
         print(f"Erreur lors de la récupération des devices: {e}")
         return []
