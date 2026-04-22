@@ -114,7 +114,7 @@ services:
     networks:
       - wazuh_network
       - authentik_network
-      - iam_network
+      - web-page_iam_network
 
 volumes:
   wazuh_api_configuration:
@@ -136,7 +136,7 @@ volumes:
 networks:
   wazuh_network:
     driver: bridge
-  iam_network:
+  web-page_iam_network:
     external: true
   ssh-cible_default:
     external: true
