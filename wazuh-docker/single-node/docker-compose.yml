@@ -62,7 +62,9 @@ services:
       - wazuh_api_configuration:/var/ossec/api/configuration
       - wazuh_etc:/var/ossec/etc
       - ./decoders/bash_decoder.xml:/var/ossec/etc/decoders/bash_decoder.xml
+      - ./decoders/pfe_app_audit_decoder.xml:/var/ossec/etc/decoders/pfe_app_audit_decoder.xml
       - ./rules/bash_rules.xml:/var/ossec/etc/rules/bash_rules.xml
+      - ./rules/pfe_app_audit_rules.xml:/var/ossec/etc/rules/pfe_app_audit_rules.xml
       - ./agents/agent.conf:/var/ossec/etc/shared/default/agent.conf
       - wazuh_logs:/var/ossec/logs
       - wazuh_queue:/var/ossec/queue

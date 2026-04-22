@@ -40,6 +40,7 @@ from ACL_work.tailscale_acl_api import (
     revoke_access_request,
     cleanup_expired_requests,
 )
+from audit import emit_audit_event
 
 app = Flask(__name__)
 app.secret_key = "EVXFENKv6NESy84NkroEE48xONAyDcEa0UZ4jFkqIp42owAijeA93rsWDEjA8aVvzSqm9zNPvuEkhjSrGlac2OliaZw9R5AiELtc0PQC0jHnBFMFDHHQ0Hikx0vrQiOv"
@@ -322,15 +323,40 @@ def auth_callback():
         # Stocke les infos essentielles en session
         session["user_data"] = user_info
 
+        emit_audit_event(
+            event="login",
+            status="success",
+            user_email=user_info.get("email", "-"),
+            user_name=user_info.get("username", "-"),
+            ip=request.headers.get("X-Forwarded-For", request.remote_addr or "-"),
+            message="Authentification reussie via Authentik",
+        )
+
         return redirect(url_for("index"))
     except Exception as e:
         app.logger.error(f"Erreur callback: {e}")
+        emit_audit_event(
+            event="login",
+            status="failed",
+            ip=request.headers.get("X-Forwarded-For", request.remote_addr or "-"),
+            reason="oauth_callback_error",
+            message=str(e),
+        )
         session.clear()  # Nettoie tout pour éviter la boucle
         return redirect(url_for("login"))
 
 
 @app.route("/logout")
 def logout():
+    user = get_current_user()
+    emit_audit_event(
+        event="logout",
+        status="success",
+        user_email=user.email if user else "-",
+        user_name=user.username if user else "-",
+        ip=request.headers.get("X-Forwarded-For", request.remote_addr or "-"),
+        message="Deconnexion utilisateur",
+    )
     session.clear()
     # Redirection vers Authentik pour fermer la session globale
     # L'URL dépend de votre configuration, souvent : /application/o/portail-interne/end-session/
@@ -510,6 +536,14 @@ def api_approve_request(request_id):
     access_req = AccessRequest.query.get(request_id)
 
     if not access_req:
+        emit_audit_event(
+            event="admin_decision",
+            status="failed",
+            actor_email=user.email if user else "-",
+            request_id=request_id,
+            reason="request_not_found",
+            message="Demande introuvable pour approbation",
+        )
         return jsonify({"error": "Demande non trouvée"}), 404
 
     access_req.approve(user.email)
@@ -521,10 +555,34 @@ def api_approve_request(request_id):
     if success:
         db.session.commit()  # Important!
         print(f"✓ Succès: {msg}")
+        emit_audit_event(
+            event="admin_decision",
+            status="approved",
+            user_email=access_req.user_email,
+            user_name=access_req.user_name,
+            actor_email=user.email if user else "-",
+            server_id=access_req.server_id,
+            server_name=access_req.server_name,
+            request_id=access_req.id,
+            ttl=access_req.expires_at.isoformat() if access_req.expires_at else "-",
+            message=msg,
+        )
 
     else:
         db.session.rollback()
         print(f"✗ Erreur: {msg}")
+        emit_audit_event(
+            event="admin_decision",
+            status="failed",
+            user_email=access_req.user_email,
+            user_name=access_req.user_name,
+            actor_email=user.email if user else "-",
+            server_id=access_req.server_id,
+            server_name=access_req.server_name,
+            request_id=access_req.id,
+            reason="acl_apply_failed",
+            message=msg,
+        )
 
     return jsonify(
         {
@@ -546,9 +604,29 @@ def api_deny_request(request_id):
     access_req = AccessRequest.query.get(request_id)
 
     if not access_req:
+        emit_audit_event(
+            event="admin_decision",
+            status="failed",
+            actor_email=user.email if user else "-",
+            request_id=request_id,
+            reason="request_not_found",
+            message="Demande introuvable pour refus",
+        )
         return jsonify({"error": "Demande non trouvée"}), 404
 
     access_req.deny(user.email, notes)
+    emit_audit_event(
+        event="admin_decision",
+        status="denied",
+        user_email=access_req.user_email,
+        user_name=access_req.user_name,
+        actor_email=user.email if user else "-",
+        server_id=access_req.server_id,
+        server_name=access_req.server_name,
+        request_id=access_req.id,
+        reason="admin_denied",
+        message=notes or "Demande refusee par administrateur",
+    )
 
     return jsonify({"message": "Demande rejetée avec succès"})
 
@@ -607,6 +685,15 @@ def api_request_access():
     user = get_current_user()
 
     if not server_id or not user:
+        emit_audit_event(
+            event="permission_request",
+            status="failed",
+            user_email=user.email if user else "-",
+            user_name=user.username if user else "-",
+            ip=request.headers.get("X-Forwarded-For", request.remote_addr or "-"),
+            reason="missing_payload",
+            message="server_id ou utilisateur manquant",
+        )
         return jsonify({"error": "Données manquantes"}), 400
 
     # Bloquer toute nouvelle demande tant qu'une demande est en attente.
@@ -616,6 +703,16 @@ def api_request_access():
         .first()
     )
     if pending_request:
+        emit_audit_event(
+            event="permission_request",
+            status="rejected",
+            user_email=user.email,
+            user_name=user.username,
+            server_id=server_id,
+            request_id=pending_request.id,
+            reason="already_pending",
+            message="Une demande en attente existe deja",
+        )
         return (
             jsonify(
                 {
@@ -634,6 +731,15 @@ def api_request_access():
     devices = get_tailscale_devices()
     server = next((d for d in devices if d["id"] == server_id), None)
     if not server:
+        emit_audit_event(
+            event="permission_request",
+            status="failed",
+            user_email=user.email,
+            user_name=user.username,
+            server_id=server_id,
+            reason="server_not_found",
+            message="Serveur cible introuvable",
+        )
         return jsonify({"error": "Serveur non trouvé"}), 404
 
     # Empêcher la demande si l'utilisateur a déjà accès (tag ou ACL approuvée active).
@@ -650,6 +756,16 @@ def api_request_access():
         is not None
     )
     if has_tag_access or has_acl_access:
+        emit_audit_event(
+            event="permission_request",
+            status="rejected",
+            user_email=user.email,
+            user_name=user.username,
+            server_id=server_id,
+            server_name=server.get("name", server_id),
+            reason="already_has_access",
+            message="Utilisateur deja autorise sur ce serveur",
+        )
         return jsonify({"error": "Vous avez déjà accès à ce serveur"}), 400
 
     # Vérifier si une demande existe déjà
@@ -658,6 +774,16 @@ def api_request_access():
     ).first()
 
     if existing_request:
+        emit_audit_event(
+            event="permission_request",
+            status="rejected",
+            user_email=user.email,
+            user_name=user.username,
+            server_id=server_id,
+            request_id=existing_request.id,
+            reason="duplicate_pending_request",
+            message="Demande deja en cours pour ce serveur",
+        )
         return jsonify({"error": "Une demande est déjà en cours pour ce serveur"}), 400
 
     tags = server.get("tags", [])
@@ -668,6 +794,16 @@ def api_request_access():
     ]
 
     if len(matching_machine_tags) > 1:
+        emit_audit_event(
+            event="permission_request",
+            status="failed",
+            user_email=user.email,
+            user_name=user.username,
+            server_id=server_id,
+            server_name=server.get("name", server_id),
+            reason="ambiguous_machine_tags",
+            message=",".join(matching_machine_tags),
+        )
         return (
             jsonify(
                 {
@@ -692,6 +828,17 @@ def api_request_access():
     try:
         db.session.add(access_request)
         db.session.commit()
+        emit_audit_event(
+            event="permission_request",
+            status="submitted",
+            user_email=user.email,
+            user_name=user.username,
+            ip=request.headers.get("X-Forwarded-For", request.remote_addr or "-"),
+            server_id=server_id,
+            server_name=server.get("name", server_id),
+            request_id=access_request.id,
+            message="Nouvelle demande d'acces enregistree",
+        )
 
         return (
             jsonify(
@@ -707,6 +854,15 @@ def api_request_access():
     except Exception as e:
         db.session.rollback()
         print(f"Erreur lors de l'enregistrement de la demande: {e}")
+        emit_audit_event(
+            event="permission_request",
+            status="failed",
+            user_email=user.email,
+            user_name=user.username,
+            server_id=server_id,
+            reason="db_error",
+            message=str(e),
+        )
         return jsonify({"error": "Erreur lors de l'enregistrement de la demande"}), 500
 
 

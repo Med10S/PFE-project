@@ -1,0 +1,69 @@
+<group name="pfe_app_audit,iam,">
+  <rule id="100120" level="3">
+    <decoded_as>pfe_app_audit</decoded_as>
+    <description>Evenement d'audit applicatif IAM</description>
+    <group>pfe_audit,authentication_success,</group>
+  </rule>
+
+  <rule id="100121" level="5">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^login$</field>
+    <field name="pfe_status">^success$</field>
+    <description>Connexion reussie IAM: $(pfe_user_email)</description>
+    <group>pfe_audit,authentication_success,</group>
+  </rule>
+
+  <rule id="100122" level="6">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^logout$</field>
+    <description>Deconnexion IAM: $(pfe_user_email)</description>
+    <group>pfe_audit,authentication_success,</group>
+  </rule>
+
+  <rule id="100123" level="7">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^permission_request$</field>
+    <field name="pfe_status">^submitted$</field>
+    <description>Demande d'acces soumise: $(pfe_user_email) -> $(pfe_server_name)</description>
+    <group>pfe_audit,access_control,</group>
+  </rule>
+
+  <rule id="100124" level="10">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^admin_decision$</field>
+    <field name="pfe_status">^approved$</field>
+    <description>Demande approuvee par $(pfe_actor_email): $(pfe_user_email) -> $(pfe_server_name), TTL=$(pfe_ttl)</description>
+    <group>pfe_audit,access_control,</group>
+  </rule>
+
+  <rule id="100125" level="10">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^admin_decision$</field>
+    <field name="pfe_status">^denied$</field>
+    <description>Demande refusee par $(pfe_actor_email): $(pfe_user_email) -> $(pfe_server_name)</description>
+    <group>pfe_audit,access_denied,</group>
+  </rule>
+
+  <rule id="100126" level="11">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^auto_revocation$</field>
+    <field name="pfe_status">^success$</field>
+    <description>Revocation automatique TTL: $(pfe_user_email) -> $(pfe_server_name)</description>
+    <group>pfe_audit,access_control,</group>
+  </rule>
+
+  <rule id="100127" level="12">
+    <if_sid>100120</if_sid>
+    <field name="pfe_status">^failed$</field>
+    <description>Echec evenement IAM $(pfe_event): user=$(pfe_user_email) reason=$(pfe_reason)</description>
+    <group>pfe_audit,error,</group>
+  </rule>
+
+  <rule id="100128" level="8">
+    <if_sid>100120</if_sid>
+    <field name="pfe_event">^permission_request$</field>
+    <field name="pfe_status">^rejected$</field>
+    <description>Demande d'acces rejetee: $(pfe_user_email), reason=$(pfe_reason)</description>
+    <group>pfe_audit,access_denied,</group>
+  </rule>
+</group>

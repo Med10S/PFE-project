@@ -11,12 +11,14 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Ajouter le répertoire parent au path
-sys.path.insert(0, os.path.dirname(__file__))
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+sys.path.insert(0, BASE_DIR)
 
-from models import AccessRequest, db
+from models import AccessRequest
 from ACL_work.tailscale_acl_api import (
-    cleanup_expired_requests
+    revoke_access_request,
 )
+from audit import emit_audit_event
 # Configuration de la base de données depuis les variables Docker
 db_user = os.getenv('DB_USER', 'iam_user')
 db_password = os.getenv('DB_PASSWORD', 'iam_password_change_me')
@@ -42,25 +44,45 @@ def expire_old_accesses():
         ).all()
 
         count = len(expired_accesses)
+        revoked_count = 0
 
         for access in expired_accesses:
-            access.status = 'expired'
-            print(f"[EXPIRATION] {access.user_name} - Accès à {access.server_name} expiré")
-            removed_count, removed_list = cleanup_expired_requests(AccessRequest, db)
-
-            print(f"Nettoyage effectué:")
-            print(f"  - Accès supprimés: {removed_count}")
-            if removed_list:
-                print(f"  - Détails:")
-                for access in removed_list:
-                    print(f"    • {access}")
+            success, msg = revoke_access_request(access)
+            if success:
+                revoked_count += 1
+                access.status = 'expired'
+                emit_audit_event(
+                    event='auto_revocation',
+                    status='success',
+                    user_email=access.user_email,
+                    user_name=access.user_name,
+                    server_id=access.server_id,
+                    server_name=access.server_name,
+                    request_id=access.id,
+                    reason='ttl_expired',
+                    ttl=access.expires_at.isoformat() if access.expires_at else '-',
+                    message=msg,
+                )
+                print(f"[EXPIRATION] {access.user_name} - Accès à {access.server_name} révoqué")
             else:
-                print(f"  - Rien à nettoyer")
+                emit_audit_event(
+                    event='auto_revocation',
+                    status='failed',
+                    user_email=access.user_email,
+                    user_name=access.user_name,
+                    server_id=access.server_id,
+                    server_name=access.server_name,
+                    request_id=access.id,
+                    reason='ttl_expired',
+                    ttl=access.expires_at.isoformat() if access.expires_at else '-',
+                    message=msg,
+                )
+                print(f"[EXPIRATION] Échec de révocation pour {access.user_name} sur {access.server_name}: {msg}")
 
         session.commit()
         session.close()
 
-        print(f"\n✅ Script d'expiration terminé: {count} accès expirés")
+        print(f"\n✅ Script d'expiration terminé: {count} expirés détectés, {revoked_count} révoqués")
         return True
 
     except Exception as e:

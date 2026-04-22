@@ -1,0 +1,9 @@
+<decoder name="pfe_app_audit">
+  <prematch>PFE_AUDIT</prematch>
+</decoder>
+
+<decoder name="pfe_app_audit_fields">
+  <parent>pfe_app_audit</parent>
+  <regex>PFE_AUDIT event="([^"]+)" status="([^"]+)" user_email="([^"]*)" user_name="([^"]*)" actor_email="([^"]*)" ip="([^"]*)" server_id="([^"]*)" server_name="([^"]*)" request_id="([^"]*)" reason="([^"]*)" ttl="([^"]*)" message="([^"]*)"</regex>
+  <order>pfe_event,pfe_status,pfe_user_email,pfe_user_name,pfe_actor_email,srcip,pfe_server_id,pfe_server_name,pfe_request_id,pfe_reason,pfe_ttl,pfe_message</order>
+</decoder>
