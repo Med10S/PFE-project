@@ -1,10 +1,52 @@
-\chapter{Scenarios de test et validation}
+\chapter{Validation et tests}
 
 \section{Introduction du chapitre}
 Ce chapitre formalise la strategie de verification adoptee pour demontrer le comportement securitaire de la solution. Il relie chaque test a une propriete Zero Trust attendue et identifie les preuves a collecter pour la validation.
 
 \section{Strategie de test}
 La validation repose sur des tests orientes preuve, executes de bout en bout sur les parcours critiques de securite.
+
+\section{Indicateurs Power BI}
+Les tableaux de bord Power BI completent les preuves de test en donnant une lecture visuelle des volumes de sessions, des demandes d'acces et des commandes administratives.
+
+\subsection{Gestion des acces et privileges (PAM et audit)}
+\begin{figure}[H]
+	\centering
+\includegraphics[width=0.92\textwidth]{images/Authentification IAM nombre de session ouvert et fermer dasn un anneau et dans des bar la bar est le nombre de session ouvert par temps.png}
+\caption{Authentification et cycle de vie des sessions IAM.}
+\label{fig:powerbi-iam-sessions}
+\end{figure}
+
+Ce panneau traite de la brique Identity and Access Management, le premier rempart de la securite Zero Trust. La repartition des sessions en anneau montre l'equilibre entre les sessions ouvertes et fermees. On observe ici 60\% de sessions ouvertes contre 40\% de sessions fermees. Ce suivi est essentiel pour identifier des sessions restes actives trop longtemps, car elles augmenteraient la surface d'attaque.
+
+Le graphique en barres suit le nombre de sessions ouvertes par intervalle de temps sur la periode du 21 au 23 avril. Il permet d'etablir une base de comportement normal et de reperer des pics de connexion suspects, par exemple des connexions anormales en pleine nuit.
+
+
+\subsection{Authentification et cycle de vie des sessions (IAM)}
+\begin{figure}[H]
+	\centering
+\includegraphics[width=0.92\textwidth]{images/Gestion des Accès pim pam un grapge de entenoir les nombre de demande d'acces et le refuser et les accorder , le nombre de commande par commande admin et normal .png}
+\caption{Gestion des acces et privileges.}
+\label{fig:powerbi-access-requests}
+\end{figure}
+
+Cette interface se concentre sur le principe du moindre privilege et sur le controle des actions effectuees sur le systeme. Le graphique en entonnoir montre le taux d'acceptation des demandes d'acces: sur deux demandes, une seule a ete accordee, soit 50\%. C'est un indicateur cle pour l'acces JIT, car l'acces n'est pas permanent mais soumis a une validation stricte.
+
+Le graphique de droite liste les commandes executees, par exemple \texttt{ls}, \texttt{whoami} et \texttt{exit}. Cela permet de detecter des comportements anormaux ou une phase d'exploration par un utilisateur. La section \texttt{command admin} isole les actions sensibles, comme l'edition de fichiers via \texttt{nano text.txt}. Dans un modele Zero Trust, chaque commande administrative doit etre logguee et imputable a une identite precise.
+
+\subsection{Vue generale de l'architecture Zero Trust}
+\begin{figure}[H]
+	\centering
+\includegraphics[width=0.92\textwidth]{images/Vue Générale Zero Trust.png}
+\caption{Vue generale de l'architecture Zero Trust.}
+\label{fig:powerbi-zero-trust-overview}
+\end{figure}
+
+Ce tableau de bord offre une vision transversale et correlee des differents composants, notamment Authentik et Tailscale. Les graphiques du haut permettent de suivre en temps reel la dynamique des sessions et des acces accordes. On remarque une correlation directe entre les sessions ouvertes et les acces accordes sur l'axe temporel.
+
+Le graphique en bas a gauche est particulierement pertinent pour le Zero Trust. Il segmente les connexions par \texttt{rule\_description} et montre quelle regle de securite a permis la connexion pour chaque utilisateur, par exemple \texttt{mohammed.sbihi@sbihi.tech}. Le dernier graphique suit l'execution des commandes Bash via Tailscale et montre l'integration du VPN mesh avec l'audit systeme: on ne sait pas seulement qui s'est connecte, mais aussi ce qu'il a fait a travers le tunnel securise.
+
+La synthese pour le PFE est claire: ces visualisations prouvent la capacite de l'architecture a appliquer la verification continue. Au lieu de faire confiance une fois l'utilisateur connecte, le systeme monitore chaque action, chaque commande et chaque session, ce qui offre une visibilite totale pour la reponse aux incidents et l'audit de conformite.
 
 Trois familles de tests sont retenues:
 \begin{itemize}

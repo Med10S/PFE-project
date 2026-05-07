@@ -1,63 +1,238 @@
-\chapter{Architecture Zero Trust globale}
+\chapter{Conception de l'architecture Zero Trust}
 
 \section{Introduction du chapitre}
-Ce chapitre presente l'architecture cible de la solution Zero Trust et la logique d'articulation entre les composants IAM, ACL, application metier et observabilite. Il met en relation les choix techniques avec les besoins de controle, de temporalite et de tracabilite.
 
-\section{Vue d'ensemble}
-L'architecture cible est organisee en couches fonctionnelles pour separer les responsabilites:
-\begin{itemize}
-	\item \textbf{Couche IAM}: Authentik verifie l'identite, applique le MFA et expose les claims necessaires.
-	\item \textbf{Couche controle d'acces}: Tailscale applique les ACL selon les utilisateurs, groupes et tags machines.
-	\item \textbf{Couche gouvernance JIT}: l'application Flask orchestre les demandes et l'etat des autorisations.
-	\item \textbf{Couche execution}: le moteur Python applique/revoque les regles ACL et gere l'expiration.
-	\item \textbf{Couche observabilite}: Wazuh centralise les logs et facilite l'audit.
-\end{itemize}
+Ce chapitre détaille la conception et l'architecture technique de la solution Zero Trust implémentée dans ce projet. Contrairement au chapitre précédent qui contextualisait les solutions au niveau des principes et du marché, ce chapitre se concentre sur \textbf{comment} ces principes sont concrètement appliqués dans notre infrastructure spécifique.
 
-Le cycle d'acces devient explicite: authentification, demande, approbation, activation temporaire, expiration, revocation.
+Nous présenterons l'articulation entre les composants techniques, les flux de données, le modèle de confiance appliqué et les choix de déploiement adaptés au contexte d'une PME/PMI.
 
-\section{Architecture reseau de deploiement}
-Le deploiement est realise integralement sous Docker sur une machine virtuelle Linux hebergee sur Azure Cloud. L'ensemble des services (IAM, proxy, application metier, cible SSH et SIEM) est execute en conteneurs, ce qui permet une reproduction controlee de l'environnement de test et une isolation claire des composants.
+\section{Vision globale et couches architecturales}
 
-Le point d'entree externe est place derriere un proxy inverse dedie. Ce proxy publie uniquement les services necessaires (portails web et APIs) et maintient les services internes non exposes directement a Internet.
+L'architecture cible est organisée selon un modèle en couches permettant une séparation claire des responsabilités et une évolutivité progressive:
 
-La topologie logique retenue repose sur des reseaux Docker separes:
-\begin{itemize}
-	\item \textbf{reseau proxy/publication}: terminaison des flux entrants et routage vers les services applicatifs autorises;
-	\item \textbf{reseau authentik}: communication entre IAM et composants qui consomment les jetons d'identite;
-	\item \textbf{reseau ssh-cible}: communication controlee entre la machine cible SSH et les services de securite associes;
-	\item \textbf{reseau wazuh}: transport des journaux vers le manager et l'indexeur pour la centralisation SIEM.
-\end{itemize}
-
-Cette segmentation reseau complete le modele Zero Trust: meme dans une meme VM Azure, les conteneurs ne partagent pas implicitement tous les flux. Chaque communication inter-service doit etre explicitement autorisee par la topologie Docker, puis par les politiques IAM/ACL au niveau applicatif et reseau.
-
-\section{Alternatives et choix}
-Deux strategies ont ete etudiees:
-\begin{itemize}
-	\item \textbf{Approche SaaS commerciale}: deploiement rapide et support editeur, mais dependance forte au fournisseur et cout recurrent.
-	\item \textbf{Approche auto-hebergee open source}: souverainete des donnees et flexibilite elevee, avec une charge d'administration plus importante.
-\end{itemize}
-
-Le projet retient une approche majoritairement auto-hebergee, adaptee au contexte de laboratoire et a la contrainte de maitrise des couts. Le choix final est:
-\begin{itemize}
-	\item Authentik pour l'IAM;
-	\item Tailscale ACL pour le controle reseau;
-	\item moteur JIT Python pour la logique metier temporelle;
-	\item Wazuh pour la supervision et la tracabilite.
-\end{itemize}
-
-\section{Flux de securite cible}
-Le flux de securite cible est le suivant:
 \begin{enumerate}
-	\item l'utilisateur s'authentifie via Authentik (avec MFA);
-	\item il soumet une demande d'acces a une machine cible depuis l'application web;
-	\item le systeme verifie l'absence de doublon \texttt{pending};
-	\item un administrateur approuve la demande;
-	\item le moteur JIT active la regle ACL pour une duree definie (TTL);
-	\item l'utilisateur accede a la cible pendant la fenetre autorisee;
-	\item a expiration, la regle est retiree automatiquement et le statut passe a \texttt{expired}.
+	\item \textbf{Couche d'authentification et d'identité}: Authentik centralise l'authentification des utilisateurs, la gestion des facteurs d'authentification (MFA) et l'exposition des attributs d'identité via OIDC/SAML.
+	
+	\item \textbf{Couche de gouvernance et d'orchestration}: Le moteur JIT (Just-In-Time) développé en Python applique les workflows d'approbation, gère les durées d'accès (TTL) et maintient l'état des demandes de privilèges.
+	
+	\item \textbf{Couche de contrôle d'accès réseau}: Tailscale applique les ACL (Access Control Lists) de manière granulaire en fonction des utilisateurs, des groupes et des tags attribués aux machines, créant un maillage réseau sécurisé (mesh VPN).
+	
+	\item \textbf{Couche d'exécution et de révocation}: Un moteur Python automatise l'activation/révocation des règles ACL basée sur les décisions du moteur JIT et sur l'expiration des TTL.
+	
+	\item \textbf{Couche d'observabilité et d'audit}: Wazuh centralise les logs d'événements depuis tous les composants (IAM, approuveurs, moteur JIT, machines cibles) pour une traçabilité immutable et l'analyse forensique.
 \end{enumerate}
 
-Ce flux permet de reduire la confiance implicite et de transformer l'acces privilegie en processus controle et auditable.
+Cette architecture en couches garantit que chaque responsabilité est isolée et que les flux d'information suivent une chaîne de confiance explicite plutôt que des permissions implicites.
+
+\section{Flux complet d'accès privilégié}
+
+Le cycle de vie d'une demande d'accès privilégié suivant le modèle Zero Trust comporte sept étapes clés:
+
+\begin{enumerate}
+	\item \textbf{Authentification initiale}: L'utilisateur s'authentifie auprès d'Authentik avec ses identifiants et un second facteur (MFA).
+	
+	\item \textbf{Demande d'accès}: Depuis l'application web métier Flask, l'utilisateur soumet une demande d'accès privilégié à une machine ou service spécifique, en incluant une justification.
+	
+	\item \textbf{Vérification de cohérence}: Le moteur JIT vérifie qu'aucune demande identique n'est déjà en attente (état \texttt{pending}) pour éviter les doublons et les abus de système.
+	
+	\item \textbf{Évaluation et approbation}: Un administrateur approuveur (avec lui-même des autorisations limitées) valide la demande selon des critères: cohérence avec le rôle demandeur, justification fournie, fenêtre horaire acceptable.
+	
+	\item \textbf{Activation temporaire}: À l'approbation, le moteur Python active immédiatement la règle ACL Tailscale correspondante. Cette activation est valide pour une durée limitée (TTL) définie selon la sensibilité de la cible (15 min pour debug rapide, 2h pour opération système).
+	
+	\item \textbf{Utilisation et journalisation}: L'utilisateur accède à la cible via Tailscale pendant la fenêtre d'accès. Chaque action est enregistrée via l'agent Wazuh présent sur la machine cible.
+	
+	\item \textbf{Révocation automatique et audit}: À expiration du TTL, le moteur Python révoque automatiquement la règle ACL. Le statut de la demande passe à \texttt{expired}. Tous les événements (demande, approbation, activation, utilisation, révocation) sont centralisés dans Wazuh pour audit complet et non-répudiation.
+\end{enumerate}
+
+Ce flux transforme l'accès privilégié d'une permission permanente et implicite en un processus explicite, temporaire et entièrement tracé.
+
+\section{Modèle de confiance et principes d'application}
+
+Le modèle de confiance déployé ne reconnaît \textbf{aucune permission implicite}. Les entités clés sont:
+
+\begin{itemize}
+	\item \textbf{Utilisateur}: Identité vérifiée par authentification forte (MFA), pas de confiance basée sur la localisation réseau ou l'appareil.
+	
+	\item \textbf{Rôle/Groupe}: Ensemble de permissions limité, attribué explicitement et révocable à tout moment.
+	
+	\item \textbf{Demande JIT}: Justifiée, datée, avec durée d'accès maximale définie ex-ante.
+	
+	\item \textbf{Approbateur}: Utilisateur avec permission d'approbation (elle-même limitée), traçable et auditable.
+	
+	\item \textbf{Machine/Service cible}: Répertoriée dans un inventaire central, avec classification de sensibilité (critique, important, standard).
+\end{itemize}
+
+Application du principe du moindre privilège:
+\begin{itemize}
+	\item Chaque utilisateur ne reçoit l'accès que nécessaire, au moment nécessaire, et pour la durée nécessaire.
+	\item Les approbateurs eux-mêmes ont des permissions restreintes (ne peuvent approuver que certains types d'accès).
+	\item Les administrateurs système n'ont pas de session permanente; ils demandent un accès JIT pour chaque opération.
+\end{itemize}
+
+\section{Gestion des demandes JIT et règles d'approbation}
+
+\subsection{État et transitions}
+
+Chaque demande JIT suit un cycle d'état bien défini stocké dans la base PostgreSQL:
+
+\begin{itemize}
+	\item \textbf{pending}: Nouvelle demande, en attente d'approbation.
+	\item \textbf{approved}: Approbation accordée, en attente d'activation automatique.
+	\item \textbf{active}: Règle ACL activée, utilisateur peut accéder pendant le TTL.
+	\item \textbf{expired}: TTL écoulé, accès révoqué automatiquement.
+	\item \textbf{denied}: Refusée par l'approbateur.
+	\item \textbf{revoked}: Manuellement révoquée avant expiration (par un admin sécurité).
+\end{itemize}
+
+\subsection{Paramètres de configuration}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|p{4.5cm}|l|}
+\hline
+\textbf{Paramètre} & \textbf{Description} & \textbf{Valeur/Exemple} \\
+\hline
+TTL par défaut & Durée d'accès pour opérations standard & 30 minutes \\
+\hline
+TTL maximal & Limite supérieure configurable par rôle & 4 heures (admins sys) \\
+\hline
+Exigence MFA approbateur & Approbation nécessite authentification du valideur & OUI (TOTP 30s) \\
+\hline
+Fenêtres horaires & Créneaux acceptables pour certains accès & 8h-18h en jours ouvrables \\
+\hline
+Limite d'escalade & Nb max de remontées hiérarchiques & 2 niveaux \\
+\hline
+Délai de révocation & Latence max avant révocation effective & $<$ 5 secondes \\
+\hline
+\end{tabularx}
+\caption{Paramètres de configuration du workflow JIT. Cette table synthétise les principaux réglages fonctionnels qui encadrent l'approbation, l'activation et la révocation des accès privilégiés.}
+\end{table}
+
+\section{Modèle de données et traçabilité}
+
+La solution repose sur une base PostgreSQL structurée pour garantir la traçabilité complète:
+
+\begin{description}
+	\item[\textbf{users}] Identifiants, rôles, affiliations de groupes et statut actif ou inactif.
+
+	\item[\textbf{jit\_requests}] Informations relatives à la demande, notamment l'identifiant utilisateur, la machine cible, la justification, l'horodatage, le statut et le TTL.
+
+	\item[\textbf{approvals}] Données liées à l'approbation, telles que l'identifiant de l'approbateur, l'identifiant de la demande, l'horodatage de validation, la justification et le contexte d'authentification.
+
+	\item[\textbf{access\_logs}] Traces d'exécution comprenant l'identifiant de la machine, l'identifiant utilisateur, les horodatages de début et de fin, les commandes exécutées via Wazuh et les événements de session.
+
+	\item[\textbf{audit\_trail}] Journal immuable retraçant tous les changements de statut et les événements système signés.
+\end{description}
+
+Cette structure permet de retracer n'importe quel accès jusqu'à: la demande originelle (qui a demandé quoi, quand, pourquoi), la décision d'approbation (qui a approuvé, avec quels justificatifs), l'exécution (quelles commandes ont été lancées, sur quoi, quand) et la révocation.
+
+\section{Sécurité de la solution elle-même}
+
+Appliquer le Zero Trust à l'infrastructure d'infrastructure (la solution de gouvernance elle-même) est critique:
+
+\begin{enumerate}
+	\item \textbf{Isolation de l'environnement IAM}: Authentik est isolé sur un réseau Docker dédié, accessible uniquement par le moteur JIT et les composants agréés.
+	
+	\item \textbf{Gestion des secrets}: Les clés privées (OIDC, base de données), les certificats SSL et les tokens d'intégration sont stockés dans HashiCorp Vault, jamais en variables d'environnement.
+	
+	\item \textbf{Permissions minimales des approbateurs}: Les approbateurs ont une compte limité ne pouvant qu'accéder au tableau de bord d'approbation, sans accès aux machines cibles ni aux logs détaillés.
+	
+	\item \textbf{Audit du moteur JIT lui-même}: Les changements dans le moteur JIT (modification des règles de TTL, ajout d'approbateurs) sont loggés séparément et alertent l'équipe sécurité.
+	
+	\item \textbf{Limitation du TTL des approbateurs}: Un approbateur avec accès à la console d'approbation n'obtient un accès JIT que si nécessaire, avec un TTL strictement limité.
+\end{enumerate}
+
+\section{Architecture réseau de déploiement}
+
+\subsection{Infrastructure cible}
+
+L'implémentation complète s'exécute en conteneurs Docker sur une machine virtuelle Linux hébergée sur Azure Cloud. Ce choix offre:
+
+\begin{itemize}
+	\item \textbf{Reproductibilité}: Tous les services sont définis dans \texttt{docker-compose.yml}, garantissant une réplication identique en autre environnement.
+	
+	\item \textbf{Isolation par conteneur}: Chaque service (IAM, proxy, application JIT, machines SSH cibles, SIEM) s'exécute isolé avec ses ressources propres.
+	
+	\item \textbf{Scalabilité progressive}: Passage de teste-preuve à production possible en ajustant les ressources Azure VM.
+\end{itemize}
+
+\subsection{Topologie logique et segmentation réseau}
+
+Bien que tous les conteneurs s'exécutent sur une seule VM, la segmentation réseau Docker garantit une défense en profondeur:
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|p{7cm}|p{4cm}|}
+\hline
+\textbf{Réseau} & \textbf{Services connectés} & \textbf{Justification} \\
+\hline
+\texttt{proxy-network} & Nginx proxy, portainer & Exposition externe contrôlée, terminaison TLS \\
+\hline
+\texttt{authentik-network} & Authentik, moteur JIT, application Flask & Gestion d'identité centralisée, interne uniquement \\
+\hline
+\texttt{ssh-target-network} & Machine SSH cible, agent Wazuh, logging & Exécution des commandes, audit local \\
+\hline
+\texttt{wazuh-network} & Agent Wazuh, manager Wazuh, indexer (Elasticsearch), dashboard & SIEM centralisé, non exposé à Internet \\
+\hline
+\texttt{data-network} & PostgreSQL, Redis (cache) & Persistance et cache, trafic chiffré \\
+\hline
+\end{tabularx}
+\caption{Segmentation réseau de l'architecture de déploiement. Chaque réseau Docker isole un groupe de services afin de limiter les flux implicites et renforcer la défense en profondeur.}
+\end{table}
+
+\textbf{Point d'entrée unique}: Un proxy inverse Nginx dédié valide et filtre tout trafic entrant. Seuls deux ports sont exposés à Internet:
+\begin{itemize}
+	\item Port 443 (HTTPS): Portail de demande d'accès JIT et interface d'approbation
+	\item Port 22 (SSH): Limité via Tailscale; aucun accès SSH direct depuis Internet
+\end{itemize}
+
+Tous les autres services (IAM Authentik, SIEM Wazuh, moteur JIT, machine SSH cible) sont accessibles \textbf{uniquement} depuis le réseau Docker interne ou via Tailscale VPN.
+
+\section{Stratégies d'implémentation considérées}
+
+Deux approches architecturales ont été évaluées avant la sélection finale:
+
+\subsection{Approche 1: SaaS commerciale centralisée}
+\begin{itemize}
+	\item \textbf{Avantages}: Support éditeur, déploiement rapide (weeks), sécurité traitée par l'éditeur.
+	\item \textbf{Inconvénients}: Dépendance éditeur, coût récurrent 50k-500k EUR/an, données externalisées, latence réseau, moins de flexibilité métier.
+\end{itemize}
+
+\subsection{Approche 2: Auto-hébergée open source (RETENUE)}
+\begin{itemize}
+	\item \textbf{Avantages}: Souveraineté complète, coûts limités (open source gratuit + infra existante), flexibilité maximale, maîtrise des données, adaptabilité aux workflows locaux.
+	\item \textbf{Inconvénients}: Charge d'administration accrue, pas de support commercial, nécessite expertise interne en DevOps.
+	\item \textbf{Justification du choix}: Pour un PFE visant l'apprentissage et une PME avec ressources IT limitées, l'auto-hébergement offre un meilleur ROI long terme et une maîtrise complète.
+\end{itemize}
+
+\section{Vecteurs de sécurité et atténuations}
+
+\subsection{Menaces identifiées et mitigations}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|p{4cm}|p{4cm}|}
+\hline
+\textbf{Menace} & \textbf{Vecteur d'attaque} & \textbf{Mitigation} \\
+\hline
+Compromission Approbateur & Approbateur approuve abusivement & MFA approbateur, audit des approbations, fenêtres horaires restreintes \\
+\hline
+Compromission utilisateur normal & Utilise accès JIT pour escalade & TTL court, révocation automatique, audit par Wazuh \\
+\hline
+Compromission moteur JIT & Injection de règles ACL malveillantes & Hardening Linux, isolation réseau, logs des changements \\
+\hline
+Compromission Authentik & Génération de tokens fictifs & Clés signées, isolation réseau, monitoring des logins anormaux \\
+\hline
+Rejeu de token JIT & Reuse d'un token déjà expiré & Token unique par demande, timestamp, révocation atomique \\
+\hline
+Escalade de privilèges via Wazuh & Agent Wazuh compromis & Agent signé, authentification mutuelle, trafic chiffré \\
+\hline
+\end{tabularx}
+\caption{Principales menaces identifiées et mécanismes d'atténuation associés. Cette table résume les risques visés par le modèle Zero Trust appliqué à la solution.}
+\end{table}
 
 \section{Conclusion du chapitre}
-L'architecture proposee etablit une separation claire des responsabilites et un flux de securite de bout en bout. Elle constitue la reference de mise en oeuvre detaillee dans le chapitre d'implementation.
+
+L'architecture proposée concrétise les principes du Zero Trust énoncés au chapitre précédent. Chaque composant remplit un rôle défini, la confiance est établie par vérification explicite, et la traçabilité est complète. Cette conception favorise l'évolution progressive (ajouter des cibles, des approbateurs, des règles métier) sans nécessiter une refonte globale.
+
+Le chapitre suivant détaillera l'implémentation technique de ces briques architecturales.

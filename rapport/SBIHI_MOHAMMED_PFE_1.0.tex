@@ -41,17 +41,18 @@
 \ifPDFTeX\else
   \usepackage{polyglossia}
   \setmainlanguage{french}
-  \setotherlanguage{arabic}
+  % \setotherlanguage{arabic}  % Disabled: Amiri font not installed
   \setmainfont{Latin Modern Roman}
-  \IfFontExistsTF{Amiri}{
-    \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{Amiri}
-  }{
-    \IfFontExistsTF{Arial}{
-      \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{Arial}
-    }{
-      \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{DejaVu Sans}
-    }
-  }
+  % Arabic font setup disabled - no suitable font available
+  % \IfFontExistsTF{Amiri}{
+  %   \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{Amiri}
+  % }{
+  %   \IfFontExistsTF{Arial}{
+  %     \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{Arial}
+  %   }{
+  %     \newfontfamily\arabicfont[Script=Arabic,Scale=1.08]{DejaVu Sans}
+  %   }
+  % }
 \fi
 
 \newcommand{\cmark}{\ding{51}}
@@ -192,7 +193,7 @@
       \begin{minipage}{0.46\textwidth}
                 \vspace{1cm}
 
-        Encadrante Soci\'et\'e\par
+        Encadrant Soci\'et\'e\par
         Encadrant ENSAF\par
         Enseignant ENSAF\par
       \end{minipage}
@@ -206,11 +207,13 @@
 \pagenumbering{Roman}
 \setcounter{page}{1}
 
+\input{sections/dedicace}
 \input{sections/remerciements}
 \input{sections/resume_fr}
 \input{sections/abstract_en}
-\input{sections/resume_ar}
+% \input{sections/resume_ar}  % Disabled: Arabic language support disabled
 \input{sections/abreviations}
+\input{sections/introduction_generale}
 
 \clearpage
 \setcounter{tocdepth}{1}
@@ -228,24 +231,28 @@
 \pagenumbering{arabic}
 \setcounter{page}{1}
 
-\chapterpage{Chapitre 1 : Representation CGI}
-% \input{sections/00_representation_cgi}
-\chapterpage{Chapitre 2 : Contexte et problematique}
+\chapterpage{Chapitre 1 : Contexte et analyse des risques}
 \input{sections/01_contexte_et_problematique}
-\chapterpage{Chapitre 3 : Objectifs, perimetre et methodologie}
+\chapterpage{Chapitre 2 : Etat de l'art et positionnement}
 \input{sections/02_objectifs_perimetre_methodologie}
-\chapterpage{Chapitre 4 : Architecture Zero Trust globale}
+\chapterpage{Chapitre 3 : Conception de l'architecture Zero Trust}
 \input{sections/03_architecture_globale}
-\chapterpage{Chapitre 5 : Implementation par composant}
+\chapterpage{Chapitre 4 : Détection d'anomalies - Qui garde les gardiens?}
+\input{sections/04_detection_anomalies_admin}
+\chapterpage{Chapitre 5 : Implementation}
 \input{sections/04_implementation_par_composant}
-\chapterpage{Chapitre 6 : Scenarios de test et validation}
+\chapterpage{Chapitre 6 : Validation et tests}
 \input{sections/05_scenarios_de_test_et_validation}
 \chapterpage{Chapitre 7 : Resultats, metriques et discussion}
+
 \input{sections/06_resultats_metriques_discussion}
-\chapterpage{Chapitre 8 : Limites et perspectives}
+\chapterpage{Chapitre 8 : Limites et travaux futurs}
 \input{sections/07_limites_et_perspectives}
-\chapterpage{Chapitre 9 : Conclusion generale}
+\chapterpage{Conclusion generale}
 \input{sections/08_conclusion_generale}
+
+\chapterpage{Bibliographie}
+\input{sections/bibliographie}
 
 
 \end{document}

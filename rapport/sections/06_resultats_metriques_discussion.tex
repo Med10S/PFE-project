@@ -1,38 +1,21 @@
-\chapter{Resultats, metriques et discussion}
+\section{Resultats, metriques et discussion}
 
 \section{Introduction du chapitre}
 Ce chapitre presente la lecture des resultats obtenus apres mise en oeuvre de la solution. Il compare la situation avant/apres, interprete les gains et discute la portee des effets observes sur la securite et la gouvernance des acces.
 
-\section{Indicateurs avant/apres}
-Les indicateurs de performance securite retenus sont presentes ci-dessous.
+\subsection{Indicateurs avant/apres}
+Les indicateurs de performance securite retenus sont presentes ci-dessous:
+\begin{itemize}
+    \item \textbf{Acces privilegies permanents}: avant, ils etaient peu controles; apres, ils sont remplaces par un modele JIT.
+    \item \textbf{Duree d'acces privilegie}: avant, la duree etait illimitee; apres, elle est bornee par un TTL configurable.
+    \item \textbf{Sessions auditables}: avant, la tracabilite etait partielle; apres, elle devient exploitable de bout en bout.
+    \item \textbf{MFA sur parcours sensible}: avant, il n'etait pas systematique; apres, il est generalise via l'IAM.
+    \item \textbf{Reexecution post-expiration}: avant, elle restait possible; apres, elle est refusee automatiquement.
+\end{itemize}
 
-\begin{table}[h]
-    \centering
-    % Le titre qui apparaîtra au-dessus du tableau
-    \caption{Comparatif des indicateurs de sécurité (Avant vs Après)} 
-    \label{tab:securite_comparatif} 
+\subsection{Analyse comparative de securite}
 
-    \begin{tabular}{|p{4.2cm}|p{3.2cm}|p{3.2cm}|p{3.2cm}|}
-        \hline
-        \rowcolor[gray]{0.9} % Optionnel : gris léger pour l'entête (nécessite \usepackage[table]{xcolor})
-        \textbf{Métrique} & \textbf{Avant} & \textbf{Après} & \textbf{Gain estimé} \\
-        \hline
-        Accès privilégiés permanents & Non maîtrisé & Contrôle JIT & Élimination des accès permanents \\
-        \hline
-        Durée d'accès privilégié & Illimitée & TTL (1h à 4h) & Réduction fenêtre d'exposition \\
-        \hline
-        Sessions auditables & Partielle & Traçabilité totale & Conformité audit améliorée \\
-        \hline
-        MFA sur parcours sensible & Non systématique & Généralisé (IAM) & Niveau d'assurance élevé \\
-        \hline
-        Réexécution post-expiration & Possible & Refusée & Risque de persistance nul \\
-        \hline
-    \end{tabular}
-\end{table}
-
-\subsection*{Description et analyse de l'analyse comparative de sécurité}
-
-Le tableau \ref{tab:securite_comparatif} présente une étude comparative de la posture de sécurité de l'infrastructure avant et après l'implémentation des mécanismes de protection avancés. Cette analyse met en exergue l'évolution vers une architecture de confiance, structurée autour de quatre axes majeurs :
+Le comparatif ci-dessus présente une étude de la posture de sécurité de l'infrastructure avant et après l'implémentation des mécanismes de protection avancés. Cette analyse met en exergue l'évolution vers une architecture de confiance, structurée autour de quatre axes majeurs :
 
 \begin{itemize}
     \item \textbf{Contrôle des accès (Just-In-Time) :} Initialement caractérisée par des accès privilégiés permanents, l'infrastructure présentait une surface d'attaque critique. L'introduction du modèle \textit{Just-In-Time} (JIT) permet désormais de limiter l'attribution de privilèges à une durée strictement nécessaire, éliminant ainsi les risques liés aux comptes dormants ou aux accès résiduels.
@@ -47,7 +30,7 @@ Le tableau \ref{tab:securite_comparatif} présente une étude comparative de la 
 
 
 
-\section{Analyse des gains}
+\subsection{Analyse des gains}
 Les gains observes se situent sur trois axes:
 \begin{itemize}
 	\item \textbf{Securite}: reduction de la confiance implicite et application stricte du moindre privilege.
@@ -59,7 +42,7 @@ La valeur metier est particulierement visible sur les interventions de remediati
 
 
 
-\section{Conclusion du chapitre}
+\subsection{Conclusion du chapitre}
 Le prototype valide la faisabilite d'une architecture Zero Trust pragmatique avec des composants open source et des integrations legeres en Python.
 
 Les principaux retours d'experience sont:

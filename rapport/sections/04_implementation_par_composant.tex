@@ -1,9 +1,12 @@
-\chapter{Implementation par composant}
+\chapter{Implementation}
 
 \section{Introduction du chapitre}
 Ce chapitre decrit l'implementation concrete de chaque composant de l'architecture cible. L'objectif est de montrer comment les choix de conception sont traduits en configurations, en logique applicative et en mecanismes techniques verifiables.
 
-\section{Authentik (IAM)}
+\section{Environnement technique}
+Le prototype est deployee dans un environnement de laboratoire conteneurise, compose d'une VM Linux, de services Docker pour Authentik, Flask, Tailscale, SSH cible et Wazuh. Les versions exactes doivent etre consignees dans le tableau de configuration final.
+
+\section{Deployement d'Authentik (IAM)}
 Authentik constitue le point central de confiance de l'architecture.
 
 Les elements implantes sont:
@@ -63,7 +66,7 @@ La configuration du provider est la piece technique qui relie le portail IAM a l
 \end{figure}
 L'utilisation de groupes permet de decouper proprement les privileges entre utilisateurs standards et administrateurs. Ce modele facilite l'audit, car chaque droit peut etre justifie par l'appartenance a un groupe metier defini.
 
-\section{Tailscale ACL (controle reseau)}
+\section{Configuration Tailscale ACL}
 Tailscale est utilise comme couche de controle reseau Zero Trust avec ACL explicites.
 
 Les points clefs de configuration sont:
@@ -104,7 +107,7 @@ Apres approbation, l'ajout de la regle ACL prouve la transition controlee de l'e
 \end{figure}
 La liste des utilisateurs dans le tailnet sert de point de controle supplementaire pour verifier la coherence entre identites IAM et identites reseau. Cette coherence est indispensable pour appliquer des ACL precises et non ambiguës.
 
-\section{Application Flask et base PostgreSQL}
+\section{Developpement de l'application Flask}
 L'application web implemente le cycle de vie des demandes d'acces privilegie.
 
 Les statuts metier principaux sont:
@@ -180,7 +183,7 @@ L'etat post-approbation confirme la coherence entre action admin et resultat sys
 \end{figure}
 Le retour cote utilisateur est un element important de gouvernance: il confirme l'etat de la demande et rend visible la temporalite de l'acces, ce qui reduit les ambiguïtés operationnelles.
 
-\section{Moteur JIT Python (ACL\_work)}
+\section{Moteur JIT Python}
 Le moteur JIT est implemente dans les scripts Python du dossier \texttt{ACL\_work}.
 
 Fonctions principales:
@@ -200,8 +203,11 @@ Le script de maintenance periodique (cron) garantit qu'aucun acces privilegie ne
 \end{figure}
 Le code de revocation montre une logique defensive: suppression ciblee des regles, tentative de sauvegarde via API, puis restauration en cas d'echec. Ce mecanisme limite le risque d'etat incoherent entre base applicative et politique ACL reelle.
 
-\section{Wazuh et observabilite}
+\section{Integration Wazuh}
 Wazuh apporte la visibilite necessaire pour l'audit et la detection d'anomalies.
+
+\section{Flux complet automatise}
+L'ensemble du flux est automatise depuis la demande utilisateur jusqu'a la revocation: authentification, approbation, activation ACL, acces SSH, journalisation et nettoyage des privileges expires.
 
 Les informations attendues dans cette couche sont:
 \begin{itemize}

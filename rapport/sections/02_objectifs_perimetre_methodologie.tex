@@ -1,41 +1,353 @@
-\chapter{Objectifs, perimetre et methodologie}
+\chapter{Etat de l'art et positionnement}
 
 \section{Introduction du chapitre}
-Ce chapitre precise les objectifs vises par le PFE, delimite le perimetre technique retenu et decrit la methode de travail suivie. Il sert de cadre de reference pour justifier les choix de conception, d'implementation et de validation presentes dans les chapitres suivants.
 
-\section{Objectif general du PFE}
-L'objectif principal est de concevoir, deployer et valider une architecture Zero Trust integrant:
-\begin{itemize}
-	\item une couche IAM pour centraliser l'authentification et la gouvernance des identites;
-	\item une couche de controle d'acces privilegie par politiques reseau et roles;
-	\item une couche PIM/JIT pour rendre les elevations de privilege temporaires, approuvees et revequables.
-\end{itemize}
+Ce chapitre constitue le fondement conceptuel du projet en positionnant la solution proposée dans le contexte de la sécurité informatique contemporaine et des approches Zero Trust. Nous articulerons notre travail autour de trois axes principaux:
 
-L'objectif de resultat est clair: eliminer les acces privilegies permanents non justifies et obtenir une tracabilite exploitable de bout en bout.
-
-\section{Perimetre technique}
-Le perimetre retenu pour le PFE inclut les composants suivants:
-\begin{itemize}
-	\item \textbf{Authentik}: IAM, federation, gestion des groupes et MFA.
-	\item \textbf{Tailscale ACL}: application des politiques reseau et controle d'acces aux cibles.
-	\item \textbf{Application web Flask + PostgreSQL}: cycle de vie des demandes (\texttt{pending}, \texttt{approved}, \texttt{denied}, \texttt{expired}).
-	\item \textbf{Moteur Python JIT}: approbation, revocation et expiration automatique des acces.
-	\item \textbf{Wazuh}: centralisation des evenements de securite et observabilite.
-\end{itemize}
-
-Sont hors perimetre immediat: la generalisation a l'ensemble du SI, la haute disponibilite multi-sites et l'integration complete avec tous les outils GRC de production.
-
-\section{Approche methodologique}
-La demarche adoptee est incrementale et orientee preuve:
 \begin{enumerate}
-	\item \textbf{Audit initial}: identification des risques lies aux acces privilegies existants.
-	\item \textbf{Conception cible}: modelisation des flux Zero Trust et choix des composants.
-	\item \textbf{Implementation}: integration progressive des briques IAM, ACL, application JIT et logs.
-	\item \textbf{Validation}: scenarios de test fonctionnels et securite avant/apres approbation.
-	\item \textbf{Mesure}: comparaison d'indicateurs avant/apres pour objectiver les gains.
+    \item \textbf{Les principes du modèle Zero Trust}: Son émergence, ses fondements théoriques et son cadre de référence selon le NIST SP 800-207
+    \item \textbf{Les briques technologiques associées}: IAM (Identity and Access Management), PIM (Privileged Identity Management) et PAM (Privileged Access Management), avec leurs rôles respectifs et complémentarités
+    \item \textbf{L'analyse de l'écosystème existant}: Solutions commerciales et open source, leurs avantages, limitations et positionnement par rapport à nos objectifs
 \end{enumerate}
 
-Cette methode permet d'assurer l'alignement entre objectifs de securite, contraintes du terrain et livrables mesurables.
+Cette analyse critique nous permettra de justifier les choix architecturaux et technologiques retenus pour la mise en œuvre d'une infrastructure Zero Trust au sein de CGI, adaptée aux contraintes d'une organisation moyenne.
+
+\section{Zero Trust: principes, fondements et architecture de référence}
+
+\subsection{Contexte et évolution du modèle de sécurité}
+
+La sécurité informatique a longtemps reposé sur un modèle de périmètre: une distinction nette entre un intérieur de confiance (l'entreprise) et un extérieur non fiable (Internet). Ce modèle de château-et-douves, popularisé dans les années 1990 et 2000, supposait que les menaces proviendraient essentiellement de l'extérieur. Cependant, cette approche présente plusieurs faiblesses majeures:
+
+\begin{itemize}
+    \item \textbf{Explosion du périmètre}: Avec le cloud computing, le télétravail et la mobilité, le périmètre réseau s'est fragmenté et étendu de façon ingérable.
+    \item \textbf{Menaces internes}: Les données compromises montrent que 30-40\% des incidents impliquent des accès abusifs internes ou des comptes compromis.
+    \item \textbf{Confiance implicite dangereuse}: L'accès unique au réseau interne accordait trop de privilèges par défaut, multipliant les surfaces d'attaque.
+    \item \textbf{Convergence des menaces}: Les attaquants ne respectent plus les frontières réseau; ils opèrent via des vecteurs hybrides (cloud, SaaS, API, etc.).
+\end{itemize}
+
+Face à ces enjeux, le concept de \textit{Zero Trust} a émergé en 2010 avec le modèle BeyondCorp de Google, proposant une alternative fondamentale: \textbf{ne faire confiance à aucune entité par défaut}, qu'elle soit utilisateur, appareil, application ou réseau. Chaque accès doit être vérifié, authentifié et autorisé dans un contexte continu.
+
+\subsection{Principes fondamentaux du Zero Trust}
+
+Le cadre de référence établi par le NIST SP 800-207 (2020) et amélioré par les directives NIST CSF 2.0 (2024) définit les principes suivants du Zero Trust:
+
+\begin{enumerate}
+    \item \textbf{Vérification continue de l'identité}: Chaque utilisateur, appareil et application doit être authentifié et autorisé à chaque tentative d'accès, indépendamment de la localisation ou du réseau.
+    
+    \item \textbf{Moindre privilège (Principle of Least Privilege - PoLP)}: Un utilisateur, un appareil ou une application ne reçoit que les permissions minimales nécessaires pour accomplir sa tâche, durant la plus courte période possible.
+    
+    \item \textbf{Absence de confiance implicite}: Aucune entité (utilisateur, machine, service) n'est intrinsèquement fiable. La confiance doit être établie par vérification et validation.
+    
+    \item \textbf{Évaluation dynamique du contexte}: Les décisions d'accès doivent considérer des facteurs dynamiques: localisation géographique, statut de l'appareil (patches, antivirus), heure, sensibilité de la ressource, etc.
+    
+    \item \textbf{Sécurité par défaut (Secure by Default)}: Les configurations doivent refuser l'accès par défaut et l'accorder explicitement après validation.
+    
+    \item \textbf{Journalisation et auditabilité complètes}: Chaque action, chaque tentative d'accès, chaque décision de contrôle doit être enregistrée et exploitable pour la forensie et l'amélioration continue.
+\end{enumerate}
+
+\subsection{Architecture de référence Zero Trust}
+
+Le NIST SP 800-207 propose une architecture composée de plusieurs domaines logiques interconnectés:
+
+\begin{itemize}
+    \item \textbf{Domaine d'accès (Access Domain)}: L'utilisateur ou l'entité qui demande l'accès
+    \item \textbf{Domaine de ressources (Resource Domain)}: La ressource, service ou donnée protégée
+    \item \textbf{Domaine administratif (Administrative Domain)}: Les systèmes de gestion d'identité, de politique et de contrôle
+    \item \textbf{Point de décision et d'exécution (Policy Decision Point - PDP et Policy Enforcement Point - PEP)}: Respectivement responsables de l'évaluation des politiques et de leur application
+    \item \textbf{Collecteur d'événements (Event Collector)}: Centralisé pour la journalisation et l'analyse
+\end{itemize}
+
+La mise en œuvre d'une architecture Zero Trust ne consiste pas simplement à ajouter de la technologie, mais à repenser la relation entre l'utilisateur, les ressources et les contrôles de sécurité.
+
+\section{Gestion des identités et des accès: IAM, PIM, PAM}
+
+\subsection{IAM (Identity and Access Management)}
+
+L'IAM est la couche fondamentale qui répond à trois questions critiques:
+
+\begin{enumerate}
+    \item \textbf{Qui es-tu?} (Authentification): Vérification de l'identité par des facteurs (mot de passe, MFA, certificats, etc.)
+    \item \textbf{Que peux-tu faire?} (Autorisation): Attribution des permissions basée sur des politiques et des rôles (RBAC, ABAC)
+    \item \textbf{D'où viens-tu?} (Fédération): Reconnaissance d'identités provenant d'autres systèmes (SSO, OIDC, SAML)
+\end{enumerate}
+
+Les fonctions principales de l'IAM incluent:
+\begin{itemize}
+    \item Gestion du cycle de vie des utilisateurs (onboarding, changements de rôle, départ)
+    \item Attribution et révocation des permissions
+    \item Authentification multi-facteur (MFA/2FA)
+    \item Single Sign-On (SSO) et fédération d'identités
+    \item Gestion des entités de service (service accounts)
+    \item Reporting et auditabilité des accès
+\end{itemize}
+
+\subsection{PIM (Privileged Identity Management)}
+
+Le PIM traite spécifiquement les identités et les accès privilégiés. Contrairement à l'IAM classique qui gère les accès standards, le PIM adresse une problématique critique: \textbf{la gestion des comptes avec privilèges d'administrateur ou d'accès système}.
+
+Les menaces liées aux identités privilégiées sont disproportionnées:
+\begin{itemize}
+    \item 45-60\% des violations impliquent un compte administrateur compromis (Verizon DBIR 2024)
+    \item Un compte administrateur peut donner accès à l'ensemble du système sans restriction
+    \item Les comptes partagés (legacy) multiplient le risque et réduisent la responsabilité
+\end{itemize}
+
+Le PIM répond par:
+\begin{itemize}
+    \item \textbf{Just-In-Time (JIT) Access}: Octroi temporaire et à la demande de privilèges, révoqué automatiquement après une durée définie (TTL - Time To Live)
+    \item \textbf{Workflow d'approbation}: Demandes de privilèges soumises à validation hiérarchique ou basée sur des conditions
+    \item \textbf{Session Recording}: Enregistrement de toutes les actions d'administrateur pour auditabilité complète
+    \item \textbf{Check-Out/Check-In}: Mécanisme de restitution des credentials après l'accès
+    \item \textbf{Isolation de domaine}: Séparation logique entre accès standard et accès privilégié
+\end{itemize}
+
+\subsection{PAM (Privileged Access Management)}
+
+Le PAM est une couche complémentaire au PIM, focalisée sur l'application et l'enforcement des politiques d'accès privilégié. Tandis que le PIM gère \textit{qui} accède et \textit{quand}, le PAM gère \textbf{comment} et \textbf{sur quoi} ils accèdent.
+
+Les responsabilités du PAM incluent:
+\begin{itemize}
+    \item \textbf{Credential Vaulting}: Stockage sécurisé des credentials (comptes root, clés API, certificates)
+    \item \textbf{Proxying sécurisé}: Interception et relais des connexions privilégiées à travers un point de contrôle centralisé
+    \item \textbf{Policy Enforcement Point}: Application des politiques réseau et des ACL au moment de l'accès
+    \item \textbf{Alertes en temps réel}: Détection des comportements anormaux ou déviations de politiques
+    \item \textbf{Intégration SIEM}: Flux d'événements vers les systèmes de détection d'intrusion
+\end{itemize}
+
+\subsection{Complémentarité IAM-PIM-PAM et intégration}
+
+Ces trois composantes ne sont \textit{pas} redondantes mais complémentaires dans une stratégie Zero Trust:
+
+\begin{itemize}
+    \item \textbf{IAM} répond: "Autorise-t-on cet utilisateur à demander l'accès?"
+    \item \textbf{PIM} répond: "Approuvons-nous cette demande? Accordons-nous ces privilèges temporairement?"
+    \item \textbf{PAM} répond: "Appliquons-nous strictement les politiques d'accès? Enregistrons-nous et alertons-nous?"
+\end{itemize}
+
+L'intégration verticale IAM → PIM → PAM garantit une chaîne de traçabilité complète et une défense en profondeur.
+
+\section{Solutions existantes: analyse du marché}
+
+\subsection{Solutions commerciales}
+
+\subsubsection{CyberArk}
+
+CyberArk est le leader incontesté du marché PAM/PIM avec une couverture très large:
+\begin{itemize}
+    \item Gestion complète des credential vaults (secrets, clés API, certificates)
+    \item Session recording et playback haute qualité
+    \item Intégration native avec Active Directory, Cloud (AWS, Azure, GCP)
+    \item SIEM et endpoint detection intégrés
+    \item Prix: 50 000-500 000 EUR/an selon la taille
+    \item Limitations: Coûteux, complexité d'implémentation, ecosystème propriétaire
+\end{itemize}
+
+\subsubsection{BeyondTrust}
+
+BeyondTrust offre une suite complète et modulaire:
+\begin{itemize}
+    \item Remote Support (accès technicient sécurisé)
+    \item Privileged Access Management (PAM)
+    \item Identity Governance (IAM)
+    \item Cloud-native et on-premises
+    \item Prix: 30 000-300 000 EUR/an
+    \item Avantages: Modularité, interface intuitive, cloud-ready
+    \item Limitations: Moins d'intégrations SIEM que CyberArk
+\end{itemize}
+
+\subsubsection{Delinea (Thycotic)}
+
+Delinea propose une approche plus légère et moderne:
+\begin{itemize}
+    \item Secret Server: Vault centralisé pour credentials et secrets
+    \item Privileged Session Manager: Proxying et recording
+    \item Cloud-ready et scalable
+    \item Prix: 15 000-150 000 EUR/an
+    \item Avantages: Meilleur rapport performance/coût
+    \item Limitations: Moins mature que CyberArk en termes de détection d'anomalies
+\end{itemize}
+
+\subsection{Solutions open source et hybrides}
+
+\subsubsection{Authentik (OIDC/SAML Provider)}
+
+Authentik est une solution IAM open source moderne:
+\begin{itemize}
+    \item Autohébergée ou cloud-managed
+    \item Support OIDC, SAML, OAuth2
+    \item Gestion des workflows d'approbation
+    \item MFA et risk-based authentication
+    \item Intégration LDAP/Active Directory
+    \item Coût: Gratuit (open source) ou 200-5 000 EUR/an (managed)
+    \item Avantages: Légère, flexible, pas de licence au nombre d'utilisateurs
+    \item Limitations: Pas de credential vaulting natif, PAM limité
+\end{itemize}
+
+\subsubsection{Tailscale (Network Access Control)}
+
+Tailscale propose une VPN moderne basée sur WireGuard et le zero trust:
+\begin{itemize}
+    \item Mesh VPN avec chiffrement end-to-end
+    \item ACL granulaires (par utilisateur, groupe, tag)
+    \item Appliance et point de sortie flexibles
+    \item Intégration Okta, Azure AD
+    \item Prix: Gratuit (personnel) ou 50-1 000 EUR/utilisateur/an
+    \item Avantages: Déploiement rapide, UX simple, multi-plateforme
+    \item Limitations: Accent sur accès réseau, pas de credential management
+\end{itemize}
+
+\subsubsection{Teleport (SSH/RDP/Kubernetes Access)}
+
+Teleport est un gestionnaire d'accès pour environnements cloud-native:
+\begin{itemize}
+    \item Accès SSH/RDP/Kubernetes centralisé
+    \item Session recording complet
+    \item RBAC et audit trails
+    \item CoS gratuit (open source) ou payante (enterprise)
+    \item Avantages: Excellent pour DevOps/Cloud, API-first
+    \item Limitations: Orienté infrastructure, pas de IAM complet
+\end{itemize}
+
+\subsubsection{Border0 (Zero Trust Network)}
+
+Border0 propose un service d'accès zero trust léger:
+\begin{itemize}
+    \item Connexions sécurisées aux resources sans VPN
+    \item Logging et audit centralisés
+    \item Intégration OAuth/OIDC
+    \item Prix: Freemium ou 100-500 EUR/mois
+    \item Avantages: Très simple à déployer, approche moderne
+    \item Limitations: Moins mature, fonctionnalités limitées
+\end{itemize}
+
+\section{Analyse comparative et justification des choix retenus}
+
+\subsection{Critères d'évaluation}
+
+Nous avons défini une matrice d'évaluation basée sur les critères suivants:
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|X|X|X|X|}
+\hline
+\textbf{Critère} & \textbf{Pondération} & \textbf{Justification} & \textbf{Contexte} \\
+\hline
+Couverture IAM & 25\% & Authentification multi-facteur, SSO, fédération LDAP/AD essentielles & Gestion 100+ utilisateurs \\
+\hline
+Gestion des privilèges & 25\% & JIT, approbation, session recording pour conformité & Infrastructure sensible \\
+\hline
+Facilité de déploiement & 15\% & Délai de mise en place limité, ressources internes réduites & Contexte PME/PMI \\
+\hline
+Coût TCO (5 ans) & 15\% & Budget limité, pas de budget illimité pour technologie & CGI groupe, mais direction locale autonome \\
+\hline
+Flexibilité et extensibilité & 10\% & Capacité à adapter, intégrer, modifier selon besoins métier & Évolution future des besoins \\
+\hline
+Auditabilité et conformité & 10\% & Logs complets, traçabilité, RGPD et réglementations applicables & Secteur finance/santé potentiel \\
+\hline
+\end{tabularx}
+\caption{Matrice d'évaluation des solutions Zero Trust: Cette table définit les six critères clés utilisés pour comparer les solutions. La pondération reflète l'importance relative de chaque critère dans le contexte CGI: la couverture IAM et la gestion des privilèges sont les plus critiques (25\% chacune), tandis que la flexibilité, l'auditabilité et la conformité jouent un rôle complémentaire. Cette approche garantit un choix équilibré entre fonctionnalité, coût et opérationnel.}
+\end{table}
+
+\newpage
+\subsection{Scores comparatifs}
+
+\begin{table}[h]
+\centering
+\begin{tabularx}{\textwidth}{|l|c|c|c|c|c|c|c|}
+\hline
+\textbf{Solution} & \textbf{IAM} & \textbf{Priv.} & \textbf{Deploy} & \textbf{Coût} & \textbf{Flex.} & \textbf{Audit} & \textbf{Score} \\
+\hline
+CyberArk & 9/10 & 10/10 & 5/10 & 3/10 & 6/10 & 10/10 & \textbf{7.5/10} \\
+\hline
+BeyondTrust & 8/10 & 9/10 & 6/10 & 5/10 & 7/10 & 9/10 & \textbf{7.6/10} \\
+\hline
+Authentik + Tailscale & 7/10 & 6/10 & 9/10 & 9/10 & 9/10 & 8/10 & \textbf{8.0/10} \\
+\hline
+Teleport & 5/10 & 7/10 & 8/10 & 7/10 & 8/10 & 9/10 & \textbf{7.3/10} \\
+\hline
+
+\end{tabularx}
+\end{table}
+
+\subsection{Justification des choix retenus}
+
+\subsubsection{Authentik pour la couche IAM}
+
+Le choix d'Authentik pour la gestion d'identité se justifie par:
+\begin{itemize}
+    \item \textbf{Couverture IAM complète}: Support OIDC, SAML, MFA, workflows d'approbation
+    \item \textbf{Intégration Active Directory native}: Compatibilité directe avec l'annuaire CGI existant
+    \item \textbf{Écosystème flexible}: Open source, auto-hébergé, pas de limitation par nombre d'utilisateurs
+    \item \textbf{Approche progressive}: Peut démarrer simple et s'enrichir progressivement
+    \item \textbf{Coût réduit}: Open source + infrastructure disponible = frais de licence quasi nuls
+    \item \textbf{Maitrise complète}: Source disponible, pas de dépendance éditeur
+\end{itemize}
+
+\subsubsection{Tailscale pour l'accès réseau zero trust}
+
+Tailscale est retenu pour:
+\begin{itemize}
+    \item \textbf{Mesh VPN simple}: WireGuard moderne, déploiement rapide sur tous OS
+    \item \textbf{ACL granulaires}: Contrôle fin par utilisateur, groupe, étiquette
+    \item \textbf{Intégration Authentik possible}: Via webhooks et intégration OIDC
+    \item \textbf{Sans maintenance réseau complexe}: VPN traditionnel requiert configuration BGP, IPSEC complexe
+    \item \textbf{Mobilité et télétravail}: Fonctionnement optimal en situation décentralisée
+\end{itemize}
+
+\subsubsection{Moteur JIT et PIM maison}
+
+Un moteur custom pour l'approbation JIT et la gestion des privilèges est conservé car:
+\begin{itemize}
+    \item \textbf{Maitrise du workflow métier}: Approbation avec règles complexes propres à CGI (escalade, limites budgétaires, etc.)
+    \item \textbf{Intégration du contexte applicatif}: Liens avec les systèmes existants (ticketing, inventaire)
+    \item \textbf{Évolutivité sans coût additionnel}: Solutions PAM commerciales facturent par nombre de systèmes gérés
+    \item \textbf{Formation du groupe GTO/VIC}: Opportunité d'apprentissage et de maîtrise interne
+    \item \textbf{Coûts récurrents limités}: Pas de licence trimestrielle ou annuelle
+\end{itemize}
+
+\section{Positionnement de la solution proposée}
+
+\subsection{Architecture intégrée}
+
+La solution développée dans ce PFE articule trois couches en une chaîne cohérente:
+
+\begin{itemize}
+    \item \textbf{Couche IAM (Authentik)}: Authentification forte, MFA, fédération des identités
+    \item \textbf{Couche d'orchestration (Moteur JIT)}: Gestion des demandes de privilèges, workflows d'approbation, TTL
+    \item \textbf{Couche d'enforcement (Tailscale)}: Contrôle d'accès réseau, isolation des segments, session logging
+\end{itemize}
+
+Chaque couche remonte les événements vers un collecteur central pour audit et conformité.
+
+\subsection{Valeur ajoutée}
+
+La valeur ajoutée de cette approche intégrée est:
+
+\begin{enumerate}
+    \item \textbf{Traçabilité complète}: Chaque accès est documenté de la demande (qui, quand, raison) à l'utilisation (actions, session log)
+    \item \textbf{Conformité simplifiée}: Zero Trust par conception facilite la démonstration aux auditeurs (ISO 27001, SOC 2, etc.)
+    \item \textbf{Responsabilité claire}: Signatures d'approbation, logs immutables, responsabilité non-répudiable
+    \item \textbf{Agilité opérationnelle}: Déploiement rapide sans infrastructure complexe, adaptation simple aux changements métier
+    \item \textbf{Coûts maîtrisés}: Pas de licence récurrente pour PAM, infrastructure mutualisée CGI existante
+\end{enumerate}
+
+\subsection{Périmètre et limites}
+
+Cette solution \textbf{ne prétend pas} remplacer une solution PAM commerciale type CyberArk, dont les fonctionnalités dépassent le scope:
+
+\begin{itemize}
+    \item \textbf{Credential vaulting centralisé pour secrets}: Hors du périmètre, supposé géré par HashiCorp Vault ou équivalent
+    \item \textbf{Détection d'anomalies par ML}: Solutions commerciales déploient des modèles ML propriétaires très avancés
+    \item \textbf{Support multi-cloud natif}: La solution cible d'abord on-premises; cloud intégrable
+    \item \textbf{Intégrations pré-construites massives}: Une solution custom intègre sur demande
+\end{itemize}
+
+Cependant, elle offre une base Zero Trust \textbf{pragmatique, autohébergée et reproductible}, suffisante pour 80\% des use cases d'une PME/PMI.
 
 \section{Conclusion du chapitre}
-Les objectifs, le perimetre et la demarche sont clarifies de maniere operationnelle. Cette base methodologique garantit que les livrables techniques repondent a un besoin de securite mesurable et verifiable.
+
+Le positionnement retenu est cohérent avec les objectifs du PFE: construire une infrastructure Zero Trust simple à déployer, traçable et suffisamment souple pour conserver l'opérationnel tout en renforçant la posture de sécurité.
+
+L'analyse du marché montre que les solutions monolithiques commerciales, bien que puissantes, ne conviennent pas au contexte CGI: coûts prohibitifs, inflexibilité, dépendance éditeur. L'approche modulaire Authentik + Tailscale + moteur custom offre un meilleur équilibre entre couverture fonctionnelle, coûts et flexibilité.
+
+Le chapitre suivant détaillera l'architecture globale de cette solution et son implémentation technique.

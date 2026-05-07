@@ -1,41 +1,37 @@
-\chapter{Contexte et problematique}
+\chapter{Contexte et analyse des risques}
 
 \section{Introduction du chapitre}
-Ce chapitre introduit le contexte organisationnel du projet, puis formalise le probleme de securite observe dans l'existant. Il explicite enfin pourquoi une approche Zero Trust est pertinente pour reduire la surface d'attaque tout en conservant l'efficacite operationnelle.
+Ce chapitre presente d'abord l'organisme d'accueil et le perimetre technique du projet, puis il formalise les risques lies aux acces privilegies et l'objectif de securisation qui a guide la conception.
 
-\section{Contexte entreprise et projet VIC}
-Ce projet de fin d'etudes s'inscrit dans un contexte operationnel ou l'equipe VIC gere un parc heterogene: serveurs Linux et Windows, applications web, bases de donnees et services d'infrastructure. Le coeur du metier repose sur l'identification, la priorisation et la remediation des vulnerabilites.
+\input{sections/00_representation_cgi}
 
-Avant ce travail, plusieurs outils existaient deja dans l'environnement: des outils de scan de vulnerabilites, des outils de ticketing, et des mecanismes d'acces techniques. Cependant, ces briques n'etaient pas reliees par une gouvernance unifiee des identites et des privileges.
+\section{Perimetre critique}
+Le perimetre critique concerne les serveurs d'administration, les machines cibles SSH, les composants reseau et les services de supervision utilises pour les interventions de remediations. Ces ressources concentrent les droits les plus sensibles et justifient un controle strict des elevations de privilege.
 
-Le besoin metier etait donc double:
+\section{Analyse des risques lies aux acces privilegies}
+Trois scenarios principaux ont ete retenus:
 \begin{itemize}
-	\item maintenir la capacite operationnelle des analystes pour corriger rapidement les incidents;
-	\item reduire la surface d'attaque due aux acces privilegies permanents.
+  \item un compte permanent vole ou reutilise abusivement;
+  \item une session privilegiee non tracee ou mal reliee a son initiateur;
+  \item une accumulation progressive de droits non revoques.
 \end{itemize}
 
-\section{Probleme de securite identifie}
-L'analyse initiale a mis en evidence une faiblesse structurelle: l'absence d'un controle centralise, granulaire et tracable des acces privilegies.
+\begin{figure}[H]
+  \centering
+  \includegraphics[width=0.95\textwidth]{images/Authentification IAM nombre de session ouvert et fermer dasn un anneau et dans des bar la bar est le nombre de session ouvert par temps.png}
+  \caption{Synthese Power BI des sessions IAM ouvertes et fermees dans le temps.}
+  \label{fig:powerbi-sessions-iam}
+\end{figure}
 
-Cette faiblesse se traduit par les constats suivants:
+Cette vue met en evidence les volumes de sessions et leur evolution temporelle. Elle aide a justifier le passage vers une gouvernance Zero Trust avec limitation de duree et tracabilite explicite.
+
+\section{Objectifs SMART du projet}
+Les objectifs retenus sont les suivants:
 \begin{itemize}
-	\item des acces SSH permanents existent sur des serveurs sensibles, sans borne temporelle stricte;
-	\item la separation des droits est insuffisante entre consultation, administration et correction;
-	\item la tracabilite est partielle, ce qui complique l'audit a posteriori;
-	\item le lien entre criticite d'un actif et niveau d'acces accorde n'est pas systematique.
+  \item supprimer les acces permanents non justifies;
+  \item tracer 100\% des elevations de privilege;
+  \item imposer un TTL maximal configurable selon le type d'acces.
 \end{itemize}
-
-Dans un tel contexte, un incident impliquant un compte privilegie (compromission, erreur humaine, action malveillante) est difficile a prevenir et a investiguer rapidement.
-
-\section{Motivation Zero Trust}
-Le modele Zero Trust, formalise par le NIST (SP 800-207), repose sur le principe \textit{Never Trust, Always Verify}. Il est adapte au contexte VIC car il impose de verifier chaque demande d'acces selon trois dimensions:
-\begin{itemize}
-	\item \textbf{Qui est l'utilisateur ?} (identite forte, federation, MFA)
-	\item \textbf{Que peut-il faire ?} (droits minimaux, RBAC, ACL)
-	\item \textbf{Combien de temps ?} (acces temporaire, approbation, expiration automatique)
-\end{itemize}
-
-Le projet propose donc une architecture cible basee sur l'IAM/PAM/PIM, avec des acces Just-in-Time (JIT), pour passer d'un modele d'acces permanent a un modele de privilege minimum temporaire, justifie et auditable.
 
 \section{Conclusion du chapitre}
-Le diagnostic met en evidence une lacune majeure de gouvernance des acces privilegies. La transition vers un modele Zero Trust, fonde sur verification continue, moindre privilege et temporalite stricte, constitue la reponse structurante qui guide le reste du rapport.
+L'analyse montre que la reduction de la surface d'attaque passe d'abord par la maitrise des acces privilegies, leur temporalite et leur journalisation. Ce constat motive directement le choix d'une architecture Zero Trust.
