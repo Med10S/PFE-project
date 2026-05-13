@@ -1,13 +1,14 @@
 \chapter*{Resume}
 \addcontentsline{toc}{chapter}{Resume}
 
-Ce projet de fin d'etudes traite la reduction de la surface d'attaque dans un contexte d'administration de systemes critiques, a travers une architecture Zero Trust integree. Le probleme principal identifie est l'existence d'acces privilegies permanents, peu traces et insuffisamment correles au niveau de criticite des actifs.
+Ce projet de fin d'études traite la réduction de la surface d'attaque dans un contexte d'administration de systèmes critiques, à travers une architecture Zero Trust intégrée. Le problème principal identifié est l'existence d'accès privilégiés permanents, peu tracés et insuffisamment corrélés au niveau de criticité des actifs.
 
-La solution proposee combine cinq briques principales : \textbf{Authentik} pour la gestion des identites (IAM), \textbf{Tailscale ACL} pour le controle d'acces reseau, une \textbf{application web Flask avec PostgreSQL} pour la gouvernance des demandes, un \textbf{moteur Python Just-in-Time} pour l'approbation/revocation automatisees, et \textbf{Wazuh} pour l'observabilite et la tracabilite de securite.
+La solution proposée combine cinq briques principales : \textbf{Authentik} pour la gestion des identités (IAM), \textbf{Tailscale ACL} pour le contrôle d'accès réseau, une \textbf{application web Flask avec PostgreSQL} pour la gouvernance des demandes, un \textbf{moteur Python Just-in-Time} pour l'approbation/révocation automatisées, et \textbf{Wazuh} pour l'observabilité et la traçabilité de sécurité.
 
-Le flux cible impose qu'aucun acces privilegie ne soit permanent : chaque elevation est demandee, justifiee, approuvee, limitee dans le temps (TTL) puis retiree automatiquement. Les scenarios de validation couvrent l'authentification forte, la demande JIT, l'activation ACL, l'acces SSH pendant la fenetre autorisee, puis le refus apres expiration.
+Le flux cible impose qu'aucun accès privilégié ne soit permanent : chaque élévation est demandée, justifiée, approuvée, limitée dans le temps (TTL) puis retirée automatiquement. Les scénarios de validation couvrent l'authentification forte, la demande JIT, l'activation ACL, l'accès SSH pendant la fenêtre autorisée, puis le refus après expiration.
 
-Les resultats attendus montrent une amelioration significative de la posture de securite : suppression des acces permanents non justifies, tracabilite complete du cycle d'acces, et meilleure capacite d'audit et de conformite.
+Les résultats attendus montrent une amélioration significative de la posture de sécurité : suppression des accès permanents non justifiés, traçabilité complète du cycle d'accès, et meilleure capacité d'audit et de conformité.
+En complément, le chapitre sur la détection d'anomalies présente une solution ciblant les comptes administrateurs. Un pipeline non supervisé, basé sur l'algorithme \textit{Isolation Forest}, analyse des indicateurs temporels et comportementaux (heure, jour, indicateur week-end/nuit, nouveau sous-réseau, nombre d'approbations récentes, type d'action, statut) et entraîne un modèle par administrateur ; tout score élevé (seuil opérationnel typique : 0.60) génère une alerte enrichie envoyée au SIEM pour investigation. Les visualisations facilitent l'interprétation des résultats et la traçabilité des détections.
 
 \textbf{Mots-cles :} Zero Trust, IAM, PIM, PAM, Authentik, Tailscale, JIT, ACL, Wazuh, cybersecurite.
 

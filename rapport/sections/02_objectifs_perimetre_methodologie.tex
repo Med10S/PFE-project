@@ -1,38 +1,38 @@
-\chapter{Etat de l'art et positionnement}
+\chapter{État de l'art et positionnement}
 
 \section{Introduction du chapitre}
 
-Ce chapitre constitue le fondement conceptuel du projet en positionnant la solution proposée dans le contexte de la sécurité informatique contemporaine et des approches Zero Trust. Nous articulerons notre travail autour de trois axes principaux:
+Ce chapitre constitue le fondement conceptuel du projet en positionnant la solution proposée dans le contexte de la sécurité informatique contemporaine et des approches Zero Trust. Nous articulerons notre travail autour de trois axes principaux :
 
 \begin{enumerate}
-    \item \textbf{Les principes du modèle Zero Trust}: Son émergence, ses fondements théoriques et son cadre de référence selon le NIST SP 800-207
+    \item \textbf{Les principes du modèle Zero Trust} : son émergence, ses fondements théoriques et son cadre de référence selon le NIST SP 800-207
     \item \textbf{Les briques technologiques associées}: IAM (Identity and Access Management), PIM (Privileged Identity Management) et PAM (Privileged Access Management), avec leurs rôles respectifs et complémentarités
-    \item \textbf{L'analyse de l'écosystème existant}: Solutions commerciales et open source, leurs avantages, limitations et positionnement par rapport à nos objectifs
+    \item \textbf{L'analyse de l'écosystème existant} : solutions commerciales et open source, leurs avantages, limitations et positionnement par rapport à nos objectifs
 \end{enumerate}
 
 Cette analyse critique nous permettra de justifier les choix architecturaux et technologiques retenus pour la mise en œuvre d'une infrastructure Zero Trust au sein de CGI, adaptée aux contraintes d'une organisation moyenne.
 
-\section{Zero Trust: principes, fondements et architecture de référence}
+\section{Zero Trust : principes, fondements et architecture de référence}
 
 \subsection{Contexte et évolution du modèle de sécurité}
 
-La sécurité informatique a longtemps reposé sur un modèle de périmètre: une distinction nette entre un intérieur de confiance (l'entreprise) et un extérieur non fiable (Internet). Ce modèle de château-et-douves, popularisé dans les années 1990 et 2000, supposait que les menaces proviendraient essentiellement de l'extérieur. Cependant, cette approche présente plusieurs faiblesses majeures:
+La sécurité informatique a longtemps reposé sur un modèle de périmètre : une distinction nette entre un intérieur de confiance (l'entreprise) et un extérieur non fiable (Internet). Ce modèle de château-et-douves, popularisé dans les années 1990 et 2000, supposait que les menaces proviendraient essentiellement de l'extérieur. Cependant, cette approche présente plusieurs faiblesses majeures :
 
 \begin{itemize}
-    \item \textbf{Explosion du périmètre}: Avec le cloud computing, le télétravail et la mobilité, le périmètre réseau s'est fragmenté et étendu de façon ingérable.
+    \item \textbf{Explosion du périmètre} : avec le cloud computing, le télétravail et la mobilité, le périmètre réseau s'est fragmenté et étendu de façon ingérable.
     \item \textbf{Menaces internes}: Les données compromises montrent que 30-40\% des incidents impliquent des accès abusifs internes ou des comptes compromis.
     \item \textbf{Confiance implicite dangereuse}: L'accès unique au réseau interne accordait trop de privilèges par défaut, multipliant les surfaces d'attaque.
-    \item \textbf{Convergence des menaces}: Les attaquants ne respectent plus les frontières réseau; ils opèrent via des vecteurs hybrides (cloud, SaaS, API, etc.).
+    \item \textbf{Convergence des menaces} : les attaquants ne respectent plus les frontières réseau ; ils opèrent via des vecteurs hybrides (cloud, SaaS, API, etc.).
 \end{itemize}
 
-Face à ces enjeux, le concept de \textit{Zero Trust} a émergé en 2010 avec le modèle BeyondCorp de Google, proposant une alternative fondamentale: \textbf{ne faire confiance à aucune entité par défaut}, qu'elle soit utilisateur, appareil, application ou réseau. Chaque accès doit être vérifié, authentifié et autorisé dans un contexte continu.
+Face à ces enjeux, le concept de \textit{Zero Trust} a émergé en 2010 avec le modèle BeyondCorp de Google, proposant une alternative fondamentale : \textbf{ne faire confiance à aucune entité par défaut}, qu'elle soit utilisateur, appareil, application ou réseau. Chaque accès doit être vérifié, authentifié et autorisé dans un contexte continu.
 
 \subsection{Principes fondamentaux du Zero Trust}
 
-Le cadre de référence établi par le NIST SP 800-207 (2020) et amélioré par les directives NIST CSF 2.0 (2024) définit les principes suivants du Zero Trust:
+Le cadre de référence établi par le NIST SP 800-207 (2020) et amélioré par les directives NIST CSF 2.0 (2024) définit les principes suivants du Zero Trust :
 
 \begin{enumerate}
-    \item \textbf{Vérification continue de l'identité}: Chaque utilisateur, appareil et application doit être authentifié et autorisé à chaque tentative d'accès, indépendamment de la localisation ou du réseau.
+    \item \textbf{Vérification continue de l'identité} : chaque utilisateur, appareil et application doit être authentifié et autorisé à chaque tentative d'accès, indépendamment de la localisation ou du réseau.
     
     \item \textbf{Moindre privilège (Principle of Least Privilege - PoLP)}: Un utilisateur, un appareil ou une application ne reçoit que les permissions minimales nécessaires pour accomplir sa tâche, durant la plus courte période possible.
     
@@ -42,7 +42,7 @@ Le cadre de référence établi par le NIST SP 800-207 (2020) et amélioré par 
     
     \item \textbf{Sécurité par défaut (Secure by Default)}: Les configurations doivent refuser l'accès par défaut et l'accorder explicitement après validation.
     
-    \item \textbf{Journalisation et auditabilité complètes}: Chaque action, chaque tentative d'accès, chaque décision de contrôle doit être enregistrée et exploitable pour la forensie et l'amélioration continue.
+    \item \textbf{Journalisation et auditabilité complètes} : chaque action, chaque tentative d'accès, chaque décision de contrôle doit être enregistrée et exploitable pour la forensie et l'amélioration continue.
 \end{enumerate}
 
 \subsection{Architecture de référence Zero Trust}
@@ -245,9 +245,10 @@ Flexibilité et extensibilité & 10\% & Capacité à adapter, intégrer, modifie
 Auditabilité et conformité & 10\% & Logs complets, traçabilité, RGPD et réglementations applicables & Secteur finance/santé potentiel \\
 \hline
 \end{tabularx}
-\caption{Matrice d'évaluation des solutions Zero Trust: Cette table définit les six critères clés utilisés pour comparer les solutions. La pondération reflète l'importance relative de chaque critère dans le contexte CGI: la couverture IAM et la gestion des privilèges sont les plus critiques (25\% chacune), tandis que la flexibilité, l'auditabilité et la conformité jouent un rôle complémentaire. Cette approche garantit un choix équilibré entre fonctionnalité, coût et opérationnel.}
+\caption{Matrice d'évaluation des solutions Zero Trust}
 \end{table}
 
+Cette table définit les six critères clés utilisés pour comparer les solutions. La pondération reflète l'importance relative de chaque critère dans le contexte CGI: la couverture IAM et la gestion des privilèges sont les plus critiques (25\% chacune), tandis que la flexibilité, l'auditabilité et la conformité jouent un rôle complémentaire. Cette approche garantit un choix équilibré entre fonctionnalité, coût et opérationnel.
 \newpage
 \subsection{Scores comparatifs}
 

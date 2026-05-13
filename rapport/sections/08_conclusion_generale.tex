@@ -1,29 +1,31 @@
 \chapter{Conclusion generale}
 
 \section{Introduction du chapitre}
-Ce dernier chapitre clot le rapport en synthetisant les apports principaux du projet et leur impact sur la securisation des acces privilegies dans une logique Zero Trust.
+Ce dernier chapitre clôt le rapport en synthétisant les apports principaux du projet et leur impact sur la sécurisation des accès privilégiés dans une logique Zero Trust.
 
-Ce projet a permis de concevoir et de valider une architecture Zero Trust adaptee a un besoin concret de maitrise des acces privilegies.
+Ce projet a permis de concevoir et de valider une architecture Zero Trust adaptée à un besoin concret de maîtrise des accès privilégiés.
 
-La contribution principale est la mise en place d'un parcours complet, depuis l'authentification forte jusqu'a la revocation automatique des droits, en passant par l'approbation humaine et la tracabilite.
+La contribution principale est la mise en place d'un parcours complet, depuis l'authentification forte jusqu'à la révocation automatique des droits, en passant par l'approbation humaine et la traçabilité.
 
-Les objectifs initiaux ont ete couverts:
+Les objectifs initiaux ont été couverts :
 \begin{itemize}
-	\item centraliser la verification d'identite via IAM;
-	\item controler l'acces a la ressource via ACL et workflow d'approbation;
-	\item rendre l'elevation de privilege temporaire, justifiee et auditable.
+	\item centraliser la vérification d'identité via IAM ;
+	\item contrôler l'accès à la ressource via ACL et workflow d'approbation ;
+	\item rendre l'élévation de privilège temporaire, justifiée et auditable.
 \end{itemize}
 
-Au-dela de la realisation technique, le projet montre qu'une demarche Zero Trust est d'abord une logique d'ingenierie et de gouvernance: chaque acces doit etre explicite, limite dans le temps, et verifiable a posteriori.
+Au-delà de la réalisation technique, le projet montre qu'une démarche Zero Trust est d'abord une logique d'ingénierie et de gouvernance : chaque accès doit être explicite, limité dans le temps, et vérifiable a posteriori.
 
 \section{Retour sur la problematique}
-La problematique initiale consistait a supprimer les acces permanents tout en conservant l'operationnel. Le prototype apporte une reponse pragmatique grace au JIT, a la journalisation et a l'approbation explicite.
+La problématique initiale consistait à supprimer les accès permanents tout en conservant l'opérationnel. Le prototype apporte une réponse pragmatique grâce au JIT, à la journalisation et à l'approbation explicite.
 
 \section{Contributions}
-Les contributions principales sont la reduction de la surface d'attaque, l'amelioration de la tracabilite et la structuration d'un workflow exploitable pour la conformite.
+Les contributions principales sont la réduction de la surface d'attaque, l'amélioration de la traçabilité et la structuration d'un workflow exploitable pour la conformité.
+
+Le projet intègre aussi une brique de détection d'anomalies pour les comptes administrateurs. Basée sur \textit{Isolation Forest}, elle ajoute une surveillance comportementale complémentaire au dispositif Zero Trust afin de détecter des usages inhabituels et d'orienter plus rapidement l'investigation.
 
 \section{Ouverture}
-Les evolutions futures peuvent aller vers un PAM plus complet, davantage d'automatisation et une meilleure integration avec les outils de ticketing et de politique centralisee.
+Les évolutions futures peuvent aller vers un PAM plus complet, davantage d'automatisation et une meilleure intégration avec les outils de ticketing et de politique centralisée.
 
 \section{Conclusion du chapitre}
-Le projet atteint son objectif central: transformer l'acces privilegie permanent en acces conditionnel, temporaire et auditable. Cette base constitue un socle solide pour une generalisation progressive a d'autres environnements et usages.
+Le projet atteint son objectif central : transformer l'accès privilégié permanent en accès conditionnel, temporaire et auditable. Cette base constitue un socle solide pour une généralisation progressive à d'autres environnements et usages.

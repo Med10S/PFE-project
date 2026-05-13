@@ -1,22 +1,22 @@
-\chapter{Implementation}
+\chapter{Implémentation}
 
 \section{Introduction du chapitre}
-Ce chapitre decrit l'implementation concrete de chaque composant de l'architecture cible. L'objectif est de montrer comment les choix de conception sont traduits en configurations, en logique applicative et en mecanismes techniques verifiables.
+Ce chapitre décrit l'implémentation concrète de chaque composant de l'architecture cible. L'objectif est de montrer comment les choix de conception sont traduits en configurations, en logique applicative et en mécanismes techniques vérifiables.
 
 \section{Environnement technique}
-Le prototype est deployee dans un environnement de laboratoire conteneurise, compose d'une VM Linux, de services Docker pour Authentik, Flask, Tailscale, SSH cible et Wazuh. Les versions exactes doivent etre consignees dans le tableau de configuration final.
+Le prototype est déployé dans un environnement de laboratoire conteneurisé, composé d'une VM Linux, de services Docker pour Authentik, Flask, Tailscale, SSH cible et Wazuh. Les versions exactes doivent être consignées dans le tableau de configuration final.
 
-\section{Deployement d'Authentik (IAM)}
+\section{Déploiement d'Authentik (IAM)}
 Authentik constitue le point central de confiance de l'architecture.
 
-Les elements implantes sont:
+Les éléments implantés sont :
 \begin{itemize}
-	\item la gestion des utilisateurs et des groupes metier;
+	\item la gestion des utilisateurs et des groupes métier ;
 	\item la federation d'authentification pour les services integres;
-	\item l'emission de claims (groupes, identifiant, email) consommes par l'application.
+	\item l'émission de claims (groupes, identifiant, email) consommés par l'application.
 \end{itemize}
 
-La sequence d'authentification observee dans le projet montre d'abord l'entree utilisateur dans Tailscale, puis la redirection vers Authentik, et enfin le retour vers Tailscale apres succes SSO.
+La séquence d'authentification observée dans le projet montre d'abord l'entrée utilisateur dans Tailscale, puis la redirection vers Authentik, et enfin le retour vers Tailscale après succès SSO.
 
 \begin{figure}[H]
 	\centering
@@ -24,7 +24,7 @@ La sequence d'authentification observee dans le projet montre d'abord l'entree u
 	\caption{Etape 1: saisie de l'email utilisateur dans le flux de connexion Tailscale.}
 	\label{fig:tailscale-step1-email}
 \end{figure}
-Cette ecran montre le point de depart du controle d'identite. L'utilisateur ne se connecte pas directement a la ressource cible: il initie d'abord un flux IAM, ce qui garantit que toute demande d'acces est rattachee a une identite explicite et tracable.
+Cet écran montre le point de départ du contrôle d'identité. L'utilisateur ne se connecte pas directement à la ressource cible : il initie d'abord un flux IAM, ce qui garantit que toute demande d'accès est rattachée à une identité explicite et traçable.
 
 \begin{figure}[H]
 	\centering
@@ -32,7 +32,7 @@ Cette ecran montre le point de depart du controle d'identite. L'utilisateur ne s
 	\caption{Etape 2: redirection vers Authentik pour la verification d'identite (SSO IAM).}
 	\label{fig:tailscale-step2-authentik}
 \end{figure}
-La redirection vers Authentik materialise la separation entre couche reseau et couche identite. Cette etape est essentielle dans Zero Trust, car la politique d'acces n'est appliquee qu'apres verification de l'identite et du contexte de connexion.
+La redirection vers Authentik matérialise la séparation entre couche réseau et couche identité. Cette étape est essentielle dans Zero Trust, car la politique d'accès n'est appliquée qu'après vérification de l'identité et du contexte de connexion.
 
 \begin{figure}[H]
 	\centering

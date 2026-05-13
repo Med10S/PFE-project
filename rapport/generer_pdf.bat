@@ -4,7 +4,10 @@ echo Compilation de : SBIHI_MOHAMMED_PFE_1.0.tex
 echo -----------------------------------------
 
 :: Exécution de pdflatex
+
 xelatex -interaction=nonstopmode -file-line-error SBIHI_MOHAMMED_PFE_1.0.tex
+xelatex -interaction=nonstopmode -file-line-error SBIHI_MOHAMMED_PFE_1.0.tex
+
 :: Vérification si la compilation a réussi
 if %errorlevel% equ 0 (
     echo -----------------------------------------

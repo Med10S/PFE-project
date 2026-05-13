@@ -1,15 +1,15 @@
 \chapter{Validation et tests}
 
 \section{Introduction du chapitre}
-Ce chapitre formalise la strategie de verification adoptee pour demontrer le comportement securitaire de la solution. Il relie chaque test a une propriete Zero Trust attendue et identifie les preuves a collecter pour la validation.
+Ce chapitre formalise la stratégie de vérification adoptée pour démontrer le comportement sécuritaire de la solution. Il relie chaque test à une propriété Zero Trust attendue et identifie les preuves à collecter pour la validation.
 
-\section{Strategie de test}
-La validation repose sur des tests orientes preuve, executes de bout en bout sur les parcours critiques de securite.
+\section{Stratégie de test}
+La validation repose sur des tests orientés preuve, exécutés de bout en bout sur les parcours critiques de sécurité.
 
 \section{Indicateurs Power BI}
-Les tableaux de bord Power BI completent les preuves de test en donnant une lecture visuelle des volumes de sessions, des demandes d'acces et des commandes administratives.
+Les tableaux de bord Power BI complètent les preuves de test en donnant une lecture visuelle des volumes de sessions, des demandes d'accès et des commandes administratives.
 
-\subsection{Gestion des acces et privileges (PAM et audit)}
+\subsection{Gestion des accès et privilèges (PAM et audit)}
 \begin{figure}[H]
 	\centering
 \includegraphics[width=0.92\textwidth]{images/Authentification IAM nombre de session ouvert et fermer dasn un anneau et dans des bar la bar est le nombre de session ouvert par temps.png}
@@ -17,9 +17,9 @@ Les tableaux de bord Power BI completent les preuves de test en donnant une lect
 \label{fig:powerbi-iam-sessions}
 \end{figure}
 
-Ce panneau traite de la brique Identity and Access Management, le premier rempart de la securite Zero Trust. La repartition des sessions en anneau montre l'equilibre entre les sessions ouvertes et fermees. On observe ici 60\% de sessions ouvertes contre 40\% de sessions fermees. Ce suivi est essentiel pour identifier des sessions restes actives trop longtemps, car elles augmenteraient la surface d'attaque.
+Ce panneau traite de la brique Identity and Access Management, le premier rempart de la sécurité Zero Trust. La répartition des sessions en anneau montre l'équilibre entre les sessions ouvertes et fermées. On observe ici 60\% de sessions ouvertes contre 40\% de sessions fermées. Ce suivi est essentiel pour identifier des sessions restées actives trop longtemps, car elles augmenteraient la surface d'attaque.
 
-Le graphique en barres suit le nombre de sessions ouvertes par intervalle de temps sur la periode du 21 au 23 avril. Il permet d'etablir une base de comportement normal et de reperer des pics de connexion suspects, par exemple des connexions anormales en pleine nuit.
+Le graphique en barres suit le nombre de sessions ouvertes par intervalle de temps sur la période du 21 au 23 avril. Il permet d'établir une base de comportement normal et de repérer des pics de connexion suspects, par exemple des connexions anormales en pleine nuit.
 
 
 \subsection{Authentification et cycle de vie des sessions (IAM)}
@@ -30,11 +30,11 @@ Le graphique en barres suit le nombre de sessions ouvertes par intervalle de tem
 \label{fig:powerbi-access-requests}
 \end{figure}
 
-Cette interface se concentre sur le principe du moindre privilege et sur le controle des actions effectuees sur le systeme. Le graphique en entonnoir montre le taux d'acceptation des demandes d'acces: sur deux demandes, une seule a ete accordee, soit 50\%. C'est un indicateur cle pour l'acces JIT, car l'acces n'est pas permanent mais soumis a une validation stricte.
+Cette interface se concentre sur le principe du moindre privilège et sur le contrôle des actions effectuées sur le système. Le graphique en entonnoir montre le taux d'acceptation des demandes d'accès : sur deux demandes, une seule a été accordée, soit 50\%. C'est un indicateur clé pour l'accès JIT, car l'accès n'est pas permanent mais soumis à une validation stricte.
 
-Le graphique de droite liste les commandes executees, par exemple \texttt{ls}, \texttt{whoami} et \texttt{exit}. Cela permet de detecter des comportements anormaux ou une phase d'exploration par un utilisateur. La section \texttt{command admin} isole les actions sensibles, comme l'edition de fichiers via \texttt{nano text.txt}. Dans un modele Zero Trust, chaque commande administrative doit etre logguee et imputable a une identite precise.
+Le graphique de droite liste les commandes exécutées, par exemple \texttt{ls}, \texttt{whoami} et \texttt{exit}. Cela permet de détecter des comportements anormaux ou une phase d'exploration par un utilisateur. La section \texttt{command admin} isole les actions sensibles, comme l'édition de fichiers via \texttt{nano text.txt}. Dans un modèle Zero Trust, chaque commande administrative doit être journalisée et imputable à une identité précise.
 
-\subsection{Vue generale de l'architecture Zero Trust}
+\subsection{Vue générale de l'architecture Zero Trust}
 \begin{figure}[H]
 	\centering
 \includegraphics[width=0.92\textwidth]{images/Vue Générale Zero Trust.png}
@@ -42,17 +42,17 @@ Le graphique de droite liste les commandes executees, par exemple \texttt{ls}, \
 \label{fig:powerbi-zero-trust-overview}
 \end{figure}
 
-Ce tableau de bord offre une vision transversale et correlee des differents composants, notamment Authentik et Tailscale. Les graphiques du haut permettent de suivre en temps reel la dynamique des sessions et des acces accordes. On remarque une correlation directe entre les sessions ouvertes et les acces accordes sur l'axe temporel.
+Ce tableau de bord offre une vision transversale et corrélée des différents composants, notamment Authentik et Tailscale. Les graphiques du haut permettent de suivre en temps réel la dynamique des sessions et des accès accordés. On remarque une corrélation directe entre les sessions ouvertes et les accès accordés sur l'axe temporel.
 
-Le graphique en bas a gauche est particulierement pertinent pour le Zero Trust. Il segmente les connexions par \texttt{rule\_description} et montre quelle regle de securite a permis la connexion pour chaque utilisateur, par exemple \texttt{mohammed.sbihi@sbihi.tech}. Le dernier graphique suit l'execution des commandes Bash via Tailscale et montre l'integration du VPN mesh avec l'audit systeme: on ne sait pas seulement qui s'est connecte, mais aussi ce qu'il a fait a travers le tunnel securise.
+Le graphique en bas à gauche est particulièrement pertinent pour le Zero Trust. Il segmente les connexions par \texttt{rule\_description} et montre quelle règle de sécurité a permis la connexion pour chaque utilisateur, par exemple \texttt{mohammed.sbihi@sbihi.tech}. Le dernier graphique suit l'exécution des commandes Bash via Tailscale et montre l'intégration du VPN mesh avec l'audit système : on ne sait pas seulement qui s'est connecté, mais aussi ce qu'il a fait à travers le tunnel sécurisé.
 
-La synthese pour le PFE est claire: ces visualisations prouvent la capacite de l'architecture a appliquer la verification continue. Au lieu de faire confiance une fois l'utilisateur connecte, le systeme monitore chaque action, chaque commande et chaque session, ce qui offre une visibilite totale pour la reponse aux incidents et l'audit de conformite.
+La synthèse pour le PFE est claire : ces visualisations prouvent la capacité de l'architecture à appliquer la vérification continue. Au lieu de faire confiance une fois l'utilisateur connecté, le système monitore chaque action, chaque commande et chaque session, ce qui offre une visibilité totale pour la réponse aux incidents et l'audit de conformité.
 
 Trois familles de tests sont retenues:
 \begin{itemize}
-	\item \textbf{Tests fonctionnels}: verification du cycle de vie des demandes (creation, approbation, expiration).
+	\item \textbf{Tests fonctionnels} : vérification du cycle de vie des demandes (création, approbation, expiration).
 	\item \textbf{Tests de securite}: verification du refus par defaut et de l'acces temporaire strictement controle.
-	\item \textbf{Tests de tracabilite}: verification de la presence des evenements dans les logs et tableaux de bord.
+	\item \textbf{Tests de traçabilité} : vérification de la présence des événements dans les logs et tableaux de bord.
 \end{itemize}
 
 Chaque test est documente avec: preconditions, etapes, resultat attendu, resultat observe et preuves (captures/logs).
@@ -60,11 +60,11 @@ Chaque test est documente avec: preconditions, etapes, resultat attendu, resulta
 \section{Contexte d'execution des tests}
 Tous les tests ont ete realises sur une machine virtuelle Azure hebergeant l'ensemble de la plateforme en conteneurs Docker. Les services sont segmentes en plusieurs reseaux Docker (proxy, IAM, cible SSH, Wazuh), avec un proxy inverse en frontal pour l'exposition controlee des interfaces web.
 
-Ce contexte est important pour l'interpretation des resultats:
+Ce contexte est important pour l'interprétation des résultats :
 \begin{itemize}
-	\item la connectivite reseau inter-service est gouvernee par les reseaux Docker et non par un flat network;
+	\item la connectivité réseau inter-service est gouvernée par les réseaux Docker et non par un flat network ;
 	\item la cible SSH est isolee dans son domaine de communication et n'est accessible qu'apres activation ACL;
-	\item la collecte de logs vers Wazuh est verifiee dans le meme environnement de production maquette.
+	\item la collecte de logs vers Wazuh est vérifiée dans le même environnement de production maquette.
 \end{itemize}
 
 \section{Cas de test IAM/PIM/PAM}
@@ -78,9 +78,9 @@ Ce contexte est important pour l'interpretation des resultats:
 	\item valider le second facteur TOTP.
 \end{enumerate}
 
-\textbf{Attendu}: acces accorde uniquement apres validation MFA.
+\textbf{Attendu} : accès accordé uniquement après validation MFA.
 
-\textbf{Preuves}: capture login, capture ecran MFA, event d'authentification.
+\textbf{Preuves} : capture login, capture écran MFA, événement d'authentification.
 
 \begin{figure}[H]
 	\centering

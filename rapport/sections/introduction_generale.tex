@@ -1,12 +1,12 @@
 \chapter*{Introduction generale}
 \addcontentsline{toc}{chapter}{Introduction generale}
 
-Le contexte de ce projet est marque par la multiplication des cyberattaques visant les acces privilegies, alors que les modeles perimetriques traditionnels ne suffisent plus a proteger des environnements hybrides et distribues. Dans ce cadre, le principe Zero Trust, formalise notamment par le NIST SP 800-207, impose de ne jamais faire confiance par defaut et de verifier chaque demande d'acces.
+Le contexte de ce projet est marqué par la multiplication des cyberattaques visant les accès privilégiés, alors que les modèles périmétriques traditionnels ne suffisent plus à protéger des environnements hybrides et distribués. Dans ce cadre, le principe Zero Trust, formalisé notamment par le NIST SP 800-207, impose de ne jamais faire confiance par défaut et de vérifier chaque demande d'accès.
 
-La problematique adressee dans ce rapport est la suivante: comment supprimer les acces permanents tout en preservant la capacite operationnelle des equipes techniques? La reponse proposee repose sur une gouvernance JIT fondee sur l'authentification forte, l'approbation explicite, la limitation temporelle des privileges et la tracabilite systematique des actions.
+La problématique adressée dans ce rapport est la suivante : comment supprimer les accès permanents tout en préservant la capacité opérationnelle des équipes techniques ? La réponse proposée repose sur une gouvernance JIT fondée sur l'authentification forte, l'approbation explicite, la limitation temporelle des privilèges et la traçabilité systématique des actions.
 
-La solution integre Authentik pour l'IAM, une application Flask pour la gouvernance des demandes, Tailscale ACL pour l'application des droits reseau, un moteur Python pour l'activation et la revocation temporaires, et Wazuh pour l'observabilite et l'audit.
+La solution intègre Authentik pour l'IAM, une application Flask pour la gouvernance des demandes, Tailscale ACL pour l'application des droits réseau, un moteur Python pour l'activation et la révocation temporaires, et Wazuh pour l'observabilité et l'audit.
 
-Le rapport est structure en six chapitres. Le premier presente le contexte et les risques lies aux acces privilegies. Le deuxieme positionne la solution par rapport aux approches existantes. Le troisieme detaille la conception de l'architecture Zero Trust. Le quatrieme decrit l'implementation. Le cinquieme presente la validation et les tests. Le sixieme discute les limites et les travaux futurs, avant la conclusion generale et les annexes.
+Le rapport est structuré en six chapitres. Le premier présente le contexte et les risques liés aux accès privilégiés. Le deuxième positionne la solution par rapport aux approches existantes. Le troisième détaille la conception de l'architecture Zero Trust. Le quatrième décrit l'implémentation, incluant un module de détection d'anomalies des comptes administrateurs basé sur l'algorithme \textit{Isolation Forest} pour enrichir le SIEM d'alertes comportementales. Le cinquième présente la validation et les tests. Le sixième discute les limites et les travaux futurs, avant la conclusion générale et les annexes.
 
 \clearpage

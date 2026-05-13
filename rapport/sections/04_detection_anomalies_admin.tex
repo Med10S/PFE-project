@@ -1,16 +1,16 @@
-\chapter{Détection d'anomalies: Qui garde les gardiens?}
+\chapter{Détection d'anomalies : qui garde les gardiens ?}
 
 \section{Introduction du chapitre}
 
-Une infrastructure Zero Trust protège l'accès des utilisateurs standards, mais pose une question critique souvent négligée: \textbf{qui surveille les administrateurs et les approbateurs eux-mêmes?} 
+Une infrastructure Zero Trust protège l'accès des utilisateurs standards, mais pose une question critique souvent négligée : \textbf{qui surveille les administrateurs et les approbateurs eux-mêmes ?}
 
-Ce chapitre répond à cette question en introduisant un système de détection d'anomalies appliqué aux administrateurs et aux approbateurs. Nous utilisons l'algorithme \textit{Isolation Forest}, une technique d'apprentissage automatique non-supervisée, pour détecter les comportements d'accès anormaux, suspects ou potentiellement compromis chez les comptes privilégiés.
+Ce chapitre répond à cette question en introduisant un système de détection d'anomalies appliqué aux administrateurs et aux approbateurs. Nous utilisons l'algorithme \textit{Isolation Forest}, une technique d'apprentissage automatique non supervisée, pour détecter les comportements d'accès anormaux, suspects ou potentiellement compromis chez les comptes privilégiés.
 
 \section{Problématique: La menace interne privilégiée}
 
 \subsection{Contexte et risques}
 
-Les statistiques de l'industrie montrent que:
+Les statistiques de l'industrie montrent que :
 \begin{itemize}
 	\item 45-60\% des violations de sécurité impliquent un compte administrateur ou privilégié (Verizon DBIR 2024).
 	\item Les comptes administrateurs, une fois compromis, permettent un accès quasi-illimité aux systèmes critiques.
@@ -20,10 +20,10 @@ Les statistiques de l'industrie montrent que:
 
 \subsection{Exemples de comportements suspects}
 
-Un administrateur ou approbateur dont le compte est compromis peut présenter:
+Un administrateur ou approbateur dont le compte est compromis peut présenter :
 
 \begin{itemize}
-	\item \textbf{Accès hors horaires normaux}: Connexions à 3h du matin ou les week-ends si habituellement ce rôle travaille 9h-17h.
+	\item \textbf{Accès hors horaires normaux} : connexions à 3 h du matin ou les week-ends si habituellement ce rôle travaille 9 h-17 h.
 	
 	\item \textbf{Approbations anormales}: Approbation en rafale de 50 demandes d'accès en 5 minutes (typiquement, 1-2 par jour).
 	
@@ -31,7 +31,7 @@ Un administrateur ou approbateur dont le compte est compromis peut présenter:
 	
 	\item \textbf{Élévation de privilèges non autorisée}: Un approbateur approuvant soudainement des demandes en dehors de sa portée de rôle.
 	
-	\item \textbf{Actions volumétriques anormales}: Demandes d'accès à 100 machines en une heure (vs. moyenne historique de 1-2).
+	\item \textbf{Actions volumétriques anormales} : demandes d'accès à 100 machines en une heure (vs. moyenne historique de 1-2).
 \end{itemize}
 
 Ces indicateurs ne suffisent pas isolément, mais combinés et pondérés, ils constituent des signaux puissants de compromission.
@@ -107,9 +107,10 @@ Moteur JIT & Demandes créées, approbations octroyées/refusées, TTL appliqué
 Machine cible SSH & Connexions SSH, commandes exécutées (auditd), déconnexions & auditd $\rightarrow$ Wazuh Agent \\
 \hline
 \end{tabularx}
-\caption{Sources de données administrateur exploitées pour l'analyse comportementale. Objectif: garantir une vision unifiée des événements IAM, JIT et SSH avant l'étape de détection d'anomalies.}
+\caption{Sources de données administrateur exploitées pour l'analyse comportementale. }
 \label{tab:sources_anomalies_admin}
 \end{table}
+Objectif: garantir une vision unifiée des événements IAM, JIT et SSH avant l'étape de détection d'anomalies.
 
 \subsection{Pipeline de collecte et centralisation}
 
@@ -177,9 +178,11 @@ champs: timestamp, actor_email, status, ip, server_id
 \texttt{status\_encoded} & Entier & 0=success, 1=approved, 2=denied, 3=failed \\
 \hline
 \end{tabularx}
-\caption{Variables explicatives retenues pour modéliser le comportement administrateur. Objectif: transformer des journaux bruts en indicateurs quantifiables pour Isolation Forest.}
+\caption{Variables explicatives retenues pour modéliser le comportement administrateur.}
 \label{tab:features_anomalies_admin}
 \end{table}
+
+ Objectif: transformer des journaux bruts en indicateurs quantifiables pour Isolation Forest.
 
 \subsubsection{Calcul des features}
 
@@ -304,7 +307,7 @@ Le tableau de bord de sécurité affiche:
 
 \begin{table}[h]
 \centering
-\begin{tabularx}{\textwidth}{|l|l|l|p{5cm}|}
+\begin{tabularx}{\textwidth}{|l|p{3cm}|l|p{5cm}|}
 \hline
 \textbf{Admin} & \textbf{Score Anomalie (7j)} & \textbf{État} & \textbf{Action} \\
 \hline
@@ -315,9 +318,11 @@ bob.dupont@corp.local & 0.65 & ⚠ Borderline & Enquête suggérée \\
 charlie.le@corp.local & 0.92 & ✗ Anomalie & Compte suspendu, escalade de sécurité \\
 \hline
 \end{tabularx}
-\caption{Exemple de tableau de bord SOC pour le suivi des comptes privilégiés. Objectif: prioriser la réponse sécurité selon le score d'anomalie et le niveau de risque associé.}
+\caption{Exemple de tableau de bord SOC pour le suivi des comptes privilégiés. }
 \label{tab:dashboard_anomalies_admin}
 \end{table}
+
+Objectif: prioriser la réponse sécurité selon le score d'anomalie et le niveau de risque associé.
 
 \section{Cas d'usage et scénarios}
 

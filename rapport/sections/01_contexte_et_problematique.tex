@@ -1,37 +1,37 @@
 \chapter{Contexte et analyse des risques}
 
 \section{Introduction du chapitre}
-Ce chapitre presente d'abord l'organisme d'accueil et le perimetre technique du projet, puis il formalise les risques lies aux acces privilegies et l'objectif de securisation qui a guide la conception.
+Ce chapitre présente d'abord l'organisme d'accueil et le périmètre technique du projet, puis il formalise les risques liés aux accès privilégiés et l'objectif de sécurisation qui a guidé la conception.
 
 \input{sections/00_representation_cgi}
 
 \section{Perimetre critique}
-Le perimetre critique concerne les serveurs d'administration, les machines cibles SSH, les composants reseau et les services de supervision utilises pour les interventions de remediations. Ces ressources concentrent les droits les plus sensibles et justifient un controle strict des elevations de privilege.
+Le périmètre critique concerne les serveurs d'administration, les machines cibles SSH, les composants réseau et les services de supervision utilisés pour les interventions de remédiation. Ces ressources concentrent les droits les plus sensibles et justifient un contrôle strict des élévations de privilège.
 
 \section{Analyse des risques lies aux acces privilegies}
-Trois scenarios principaux ont ete retenus:
+Trois scénarios principaux ont été retenus :
 \begin{itemize}
-  \item un compte permanent vole ou reutilise abusivement;
-  \item une session privilegiee non tracee ou mal reliee a son initiateur;
-  \item une accumulation progressive de droits non revoques.
+  \item un compte permanent volé ou réutilisé abusivement ;
+  \item une session privilégiée non tracée ou mal reliée à son initiateur ;
+  \item une accumulation progressive de droits non révoqués.
 \end{itemize}
 
 \begin{figure}[H]
   \centering
   \includegraphics[width=0.95\textwidth]{images/Authentification IAM nombre de session ouvert et fermer dasn un anneau et dans des bar la bar est le nombre de session ouvert par temps.png}
-  \caption{Synthese Power BI des sessions IAM ouvertes et fermees dans le temps.}
+  \caption{Synthèse Power BI des sessions IAM ouvertes et fermées dans le temps.}
   \label{fig:powerbi-sessions-iam}
 \end{figure}
 
-Cette vue met en evidence les volumes de sessions et leur evolution temporelle. Elle aide a justifier le passage vers une gouvernance Zero Trust avec limitation de duree et tracabilite explicite.
+Cette vue met en évidence les volumes de sessions et leur évolution temporelle. Elle aide à justifier le passage vers une gouvernance Zero Trust avec limitation de durée et traçabilité explicite.
 
 \section{Objectifs SMART du projet}
-Les objectifs retenus sont les suivants:
+Les objectifs retenus sont les suivants :
 \begin{itemize}
-  \item supprimer les acces permanents non justifies;
-  \item tracer 100\% des elevations de privilege;
-  \item imposer un TTL maximal configurable selon le type d'acces.
+  \item supprimer les accès permanents non justifiés ;
+  \item tracer 100\% des élévations de privilège ;
+  \item imposer un TTL maximal configurable selon le type d'accès.
 \end{itemize}
 
 \section{Conclusion du chapitre}
-L'analyse montre que la reduction de la surface d'attaque passe d'abord par la maitrise des acces privilegies, leur temporalite et leur journalisation. Ce constat motive directement le choix d'une architecture Zero Trust.
+L'analyse montre que la réduction de la surface d'attaque passe d'abord par la maîtrise des accès privilégiés, leur temporalité et leur journalisation. Ce constat motive directement le choix d'une architecture Zero Trust.

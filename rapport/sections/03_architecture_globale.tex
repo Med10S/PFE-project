@@ -8,28 +8,28 @@ Nous présenterons l'articulation entre les composants techniques, les flux de d
 
 \section{Vision globale et couches architecturales}
 
-L'architecture cible est organisée selon un modèle en couches permettant une séparation claire des responsabilités et une évolutivité progressive:
+L'architecture cible est organisée selon un modèle en couches permettant une séparation claire des responsabilités et une évolutivité progressive :
 
 \begin{enumerate}
-	\item \textbf{Couche d'authentification et d'identité}: Authentik centralise l'authentification des utilisateurs, la gestion des facteurs d'authentification (MFA) et l'exposition des attributs d'identité via OIDC/SAML.
+	\item \textbf{Couche d'authentification et d'identité} : Authentik centralise l'authentification des utilisateurs, la gestion des facteurs d'authentification (MFA) et l'exposition des attributs d'identité via OIDC/SAML.
 	
-	\item \textbf{Couche de gouvernance et d'orchestration}: Le moteur JIT (Just-In-Time) développé en Python applique les workflows d'approbation, gère les durées d'accès (TTL) et maintient l'état des demandes de privilèges.
+	\item \textbf{Couche de gouvernance et d'orchestration} : le moteur JIT (Just-In-Time) développé en Python applique les workflows d'approbation, gère les durées d'accès (TTL) et maintient l'état des demandes de privilèges.
 	
 	\item \textbf{Couche de contrôle d'accès réseau}: Tailscale applique les ACL (Access Control Lists) de manière granulaire en fonction des utilisateurs, des groupes et des tags attribués aux machines, créant un maillage réseau sécurisé (mesh VPN).
 	
 	\item \textbf{Couche d'exécution et de révocation}: Un moteur Python automatise l'activation/révocation des règles ACL basée sur les décisions du moteur JIT et sur l'expiration des TTL.
 	
-	\item \textbf{Couche d'observabilité et d'audit}: Wazuh centralise les logs d'événements depuis tous les composants (IAM, approuveurs, moteur JIT, machines cibles) pour une traçabilité immutable et l'analyse forensique.
+	\item \textbf{Couche d'observabilité et d'audit} : Wazuh centralise les logs d'événements depuis tous les composants (IAM, approuveurs, moteur JIT, machines cibles) pour une traçabilité immuable et l'analyse forensique.
 \end{enumerate}
 
 Cette architecture en couches garantit que chaque responsabilité est isolée et que les flux d'information suivent une chaîne de confiance explicite plutôt que des permissions implicites.
 
 \section{Flux complet d'accès privilégié}
 
-Le cycle de vie d'une demande d'accès privilégié suivant le modèle Zero Trust comporte sept étapes clés:
+Le cycle de vie d'une demande d'accès privilégié suivant le modèle Zero Trust comporte sept étapes clés :
 
 \begin{enumerate}
-	\item \textbf{Authentification initiale}: L'utilisateur s'authentifie auprès d'Authentik avec ses identifiants et un second facteur (MFA).
+	\item \textbf{Authentification initiale} : l'utilisateur s'authentifie auprès d'Authentik avec ses identifiants et un second facteur (MFA).
 	
 	\item \textbf{Demande d'accès}: Depuis l'application web métier Flask, l'utilisateur soumet une demande d'accès privilégié à une machine ou service spécifique, en incluant une justification.
 	
@@ -41,7 +41,7 @@ Le cycle de vie d'une demande d'accès privilégié suivant le modèle Zero Trus
 	
 	\item \textbf{Utilisation et journalisation}: L'utilisateur accède à la cible via Tailscale pendant la fenêtre d'accès. Chaque action est enregistrée via l'agent Wazuh présent sur la machine cible.
 	
-	\item \textbf{Révocation automatique et audit}: À expiration du TTL, le moteur Python révoque automatiquement la règle ACL. Le statut de la demande passe à \texttt{expired}. Tous les événements (demande, approbation, activation, utilisation, révocation) sont centralisés dans Wazuh pour audit complet et non-répudiation.
+	\item \textbf{Révocation automatique et audit} : à expiration du TTL, le moteur Python révoque automatiquement la règle ACL. Le statut de la demande passe à \texttt{expired}. Tous les événements (demande, approbation, activation, utilisation, révocation) sont centralisés dans Wazuh pour audit complet et non-répudiation.
 \end{enumerate}
 
 Ce flux transforme l'accès privilégié d'une permission permanente et implicite en un processus explicite, temporaire et entièrement tracé.
@@ -105,8 +105,10 @@ Limite d'escalade & Nb max de remontées hiérarchiques & 2 niveaux \\
 Délai de révocation & Latence max avant révocation effective & $<$ 5 secondes \\
 \hline
 \end{tabularx}
-\caption{Paramètres de configuration du workflow JIT. Cette table synthétise les principaux réglages fonctionnels qui encadrent l'approbation, l'activation et la révocation des accès privilégiés.}
+\caption{Paramètres de configuration du workflow JIT.}
 \end{table}
+
+Cette table synthétise les principaux réglages fonctionnels qui encadrent l'approbation, l'activation et la révocation des accès privilégiés.
 
 \section{Modèle de données et traçabilité}
 
@@ -177,9 +179,9 @@ Bien que tous les conteneurs s'exécutent sur une seule VM, la segmentation rés
 \texttt{data-network} & PostgreSQL, Redis (cache) & Persistance et cache, trafic chiffré \\
 \hline
 \end{tabularx}
-\caption{Segmentation réseau de l'architecture de déploiement. Chaque réseau Docker isole un groupe de services afin de limiter les flux implicites et renforcer la défense en profondeur.}
+\caption{Segmentation réseau de l'architecture de déploiement. }
 \end{table}
-
+Chaque réseau Docker isole un groupe de services afin de limiter les flux implicites et renforcer la défense en profondeur.
 \textbf{Point d'entrée unique}: Un proxy inverse Nginx dédié valide et filtre tout trafic entrant. Seuls deux ports sont exposés à Internet:
 \begin{itemize}
 	\item Port 443 (HTTPS): Portail de demande d'accès JIT et interface d'approbation
@@ -228,8 +230,10 @@ Rejeu de token JIT & Reuse d'un token déjà expiré & Token unique par demande,
 Escalade de privilèges via Wazuh & Agent Wazuh compromis & Agent signé, authentification mutuelle, trafic chiffré \\
 \hline
 \end{tabularx}
-\caption{Principales menaces identifiées et mécanismes d'atténuation associés. Cette table résume les risques visés par le modèle Zero Trust appliqué à la solution.}
+\caption{Principales menaces identifiées et mécanismes d'atténuation associés.}
 \end{table}
+
+Cette table résume les risques visés par le modèle Zero Trust appliqué à la solution.
 
 \section{Conclusion du chapitre}
 

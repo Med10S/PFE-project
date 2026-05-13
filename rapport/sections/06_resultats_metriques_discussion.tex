@@ -1,53 +1,53 @@
-\section{Resultats, metriques et discussion}
+\section{Résultats, métriques et discussion}
 
 \section{Introduction du chapitre}
-Ce chapitre presente la lecture des resultats obtenus apres mise en oeuvre de la solution. Il compare la situation avant/apres, interprete les gains et discute la portee des effets observes sur la securite et la gouvernance des acces.
+Ce chapitre présente la lecture des résultats obtenus après mise en œuvre de la solution. Il compare la situation avant/après, interprète les gains et discute la portée des effets observés sur la sécurité et la gouvernance des accès.
 
-\subsection{Indicateurs avant/apres}
-Les indicateurs de performance securite retenus sont presentes ci-dessous:
+\subsection{Indicateurs avant/après}
+Les indicateurs de performance sécurité retenus sont présentés ci-dessous :
 \begin{itemize}
-    \item \textbf{Acces privilegies permanents}: avant, ils etaient peu controles; apres, ils sont remplaces par un modele JIT.
-    \item \textbf{Duree d'acces privilegie}: avant, la duree etait illimitee; apres, elle est bornee par un TTL configurable.
-    \item \textbf{Sessions auditables}: avant, la tracabilite etait partielle; apres, elle devient exploitable de bout en bout.
-    \item \textbf{MFA sur parcours sensible}: avant, il n'etait pas systematique; apres, il est generalise via l'IAM.
-    \item \textbf{Reexecution post-expiration}: avant, elle restait possible; apres, elle est refusee automatiquement.
+    \item \textbf{Accès privilégiés permanents} : avant, ils étaient peu contrôlés ; après, ils sont remplacés par un modèle JIT.
+    \item \textbf{Durée d'accès privilégié} : avant, la durée était illimitée ; après, elle est bornée par un TTL configurable.
+    \item \textbf{Sessions auditables} : avant, la traçabilité était partielle ; après, elle devient exploitable de bout en bout.
+    \item \textbf{MFA sur parcours sensible} : avant, il n'était pas systématique ; après, il est généralisé via l'IAM.
+    \item \textbf{Réexécution post-expiration} : avant, elle restait possible ; après, elle est refusée automatiquement.
 \end{itemize}
 
-\subsection{Analyse comparative de securite}
+\subsection{Analyse comparative de sécurité}
 
 Le comparatif ci-dessus présente une étude de la posture de sécurité de l'infrastructure avant et après l'implémentation des mécanismes de protection avancés. Cette analyse met en exergue l'évolution vers une architecture de confiance, structurée autour de quatre axes majeurs :
 
 \begin{itemize}
-    \item \textbf{Contrôle des accès (Just-In-Time) :} Initialement caractérisée par des accès privilégiés permanents, l'infrastructure présentait une surface d'attaque critique. L'introduction du modèle \textit{Just-In-Time} (JIT) permet désormais de limiter l'attribution de privilèges à une durée strictement nécessaire, éliminant ainsi les risques liés aux comptes dormants ou aux accès résiduels.
+    \item \textbf{Contrôle des accès (Just-In-Time) :} initialement caractérisée par des accès privilégiés permanents, l'infrastructure présentait une surface d'attaque critique. L'introduction du modèle \textit{Just-In-Time} (JIT) permet désormais de limiter l'attribution de privilèges à une durée strictement nécessaire, éliminant ainsi les risques liés aux comptes dormants ou aux accès résiduels.
     
-    \item \textbf{Réduction de la fenêtre d'exposition (TTL) :} Par l'application d'un \textit{Time-To-Live} (TTL) rigoureux (compris entre 1h et 4h), la durée de vie des sessions d'accès a été drastiquement réduite. Cette mesure de confinement temporel garantit qu'en cas de compromission d'un identifiant, l'exploitation malveillante est limitée dans le temps.
+    \item \textbf{Réduction de la fenêtre d'exposition (TTL) :} par l'application d'un \textit{Time-To-Live} (TTL) rigoureux (compris entre 1 h et 4 h), la durée de vie des sessions d'accès a été drastiquement réduite. Cette mesure de confinement temporel garantit qu'en cas de compromission d'un identifiant, l'exploitation malveillante est limitée dans le temps.
     
-    \item \textbf{Auditabilité et Observabilité :} Le passage d'une visibilité partielle à une traçabilité exhaustive de chaque session assure une imputabilité totale. Ce renforcement de la journalisation est un prérequis indispensable pour la conformité aux normes de sécurité internationales et pour une réponse aux incidents efficace.
+    \item \textbf{Auditabilité et observabilité :} le passage d'une visibilité partielle à une traçabilité exhaustive de chaque session assure une imputabilité totale. Ce renforcement de la journalisation est un prérequis indispensable pour la conformité aux normes de sécurité internationales et pour une réponse aux incidents efficace.
     
-    \item \textbf{Authentification Multi-Facteurs (MFA) :} La généralisation du MFA via notre service d'IAM (\textit{Identity and Access Management}) sur l'ensemble des parcours sensibles vient renforcer la barrière d'entrée, garantissant une vérification d'identité robuste pour chaque interaction critique avec la plateforme.
+    \item \textbf{Authentification multi-facteurs (MFA) :} la généralisation du MFA via notre service d'IAM (\textit{Identity and Access Management}) sur l'ensemble des parcours sensibles vient renforcer la barrière d'entrée, garantissant une vérification d'identité robuste pour chaque interaction critique avec la plateforme.
 \end{itemize}
 
 
 
 
 \subsection{Analyse des gains}
-Les gains observes se situent sur trois axes:
+Les gains observés se situent sur trois axes :
 \begin{itemize}
-	\item \textbf{Securite}: reduction de la confiance implicite et application stricte du moindre privilege.
-	\item \textbf{Gouvernance}: formalisation d'un workflow de demande/approbation explicite et controlable.
-	\item \textbf{Auditabilite}: disponibilite de preuves techniques (captures, journaux, statuts applicatifs) pour les besoins de conformite.
+	\item \textbf{Sécurité} : réduction de la confiance implicite et application stricte du moindre privilège.
+	\item \textbf{Gouvernance} : formalisation d'un workflow de demande/approbation explicite et contrôlable.
+	\item \textbf{Auditabilité} : disponibilité de preuves techniques (captures, journaux, statuts applicatifs) pour les besoins de conformité.
 \end{itemize}
 
-La valeur metier est particulierement visible sur les interventions de remediation vulnerabilite, car chaque action privilegiee devient justifiee et rattachee a un contexte.
+La valeur métier est particulièrement visible sur les interventions de remédiation vulnérabilité, car chaque action privilégiée devient justifiée et rattachée à un contexte.
 
 
 
 \subsection{Conclusion du chapitre}
-Le prototype valide la faisabilite d'une architecture Zero Trust pragmatique avec des composants open source et des integrations legeres en Python.
+Le prototype valide la faisabilité d'une architecture Zero Trust pragmatique avec des composants open source et des intégrations légères en Python.
 
 Les principaux retours d'experience sont:
 \begin{itemize}
-	\item l'integration IAM + ACL + workflow applicatif est suffisante pour obtenir un resultat mesurable rapidement;
-	\item la qualite de la preuve (captures, logs, commandes) est aussi importante que la logique technique;
-	\item la maturite operationnelle dependra ensuite de l'industrialisation (CI/CD, supervision avancee, haute disponibilite).
+	\item l'intégration IAM + ACL + workflow applicatif est suffisante pour obtenir un résultat mesurable rapidement ;
+	\item la qualité de la preuve (captures, logs, commandes) est aussi importante que la logique technique ;
+	\item la maturité opérationnelle dépendra ensuite de l'industrialisation (CI/CD, supervision avancée, haute disponibilité).
 \end{itemize}

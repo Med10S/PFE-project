@@ -9,6 +9,8 @@ The target workflow enforces a strict principle: no permanent privileged access.
 
 Expected outcomes include a stronger security posture, full end-to-end traceability of privileged access, and improved compliance evidence for audit processes.
 
+In addition, the report presents an anomaly-detection solution focused on privileged administrators. It uses an unsupervised \textit{Isolation Forest} pipeline to analyze temporal and behavioral indicators such as login hour, day of week, weekend/night flags, new subnet usage, recent approval volume, action type, and status. A separate model is trained for each administrator, and high anomaly scores trigger enriched alerts sent to the SIEM for investigation and traceability.
+
 \textbf{Keywords:} Zero Trust, IAM, PIM, PAM, Authentik, Tailscale, JIT, ACL, Wazuh, cybersecurity.
 
 \clearpage
